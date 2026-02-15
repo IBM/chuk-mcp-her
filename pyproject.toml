@@ -1,6 +1,6 @@
 [project]
 name = "chuk-mcp-her"
-version = "0.1.0"
+version = "0.1.1"
 description = "Historic Environment Records MCP Server"
 authors = []
 license = { text = "Apache-2.0" }
