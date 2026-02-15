@@ -59,6 +59,13 @@ def register_aerial_tools(mcp: object, registry: object) -> None:
             These features are NOT in the NHLE — they complement her_search_monuments.
         """
         try:
+            # Coerce numeric params (MCP may pass strings)
+            lat = float(lat) if lat is not None else None
+            lon = float(lon) if lon is not None else None
+            radius_m = float(radius_m) if radius_m is not None else None
+            max_results = int(max_results)
+            offset = int(offset)
+
             bbox_tuple = None
             if bbox:
                 parts = [float(x.strip()) for x in bbox.split(",")]

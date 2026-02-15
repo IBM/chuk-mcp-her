@@ -61,6 +61,13 @@ def register_heritage_at_risk_tools(mcp: object, registry: object) -> None:
             will also appear in NHLE searches.
         """
         try:
+            # Coerce numeric params (MCP may pass strings)
+            lat = float(lat) if lat is not None else None
+            lon = float(lon) if lon is not None else None
+            radius_m = float(radius_m) if radius_m is not None else None
+            max_results = int(max_results)
+            offset = int(offset)
+
             if heritage_category and heritage_category not in HAR_CATEGORIES:
                 return format_response(
                     ErrorResponse(

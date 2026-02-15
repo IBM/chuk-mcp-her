@@ -62,6 +62,10 @@ class HeritageGatewayAdapter(BaseSourceAdapter):
             offset: Pagination offset.
             **kwargs: what, where, when — Heritage Gateway search fields.
         """
+        # Coerce numeric params (may arrive as strings via MCP)
+        max_results = int(max_results)
+        offset = int(offset)
+
         what = kwargs.get("what") or query
         where = kwargs.get("where")
         when = kwargs.get("when")

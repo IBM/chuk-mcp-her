@@ -78,6 +78,13 @@ class AIMAdapter(BaseSourceAdapter):
             offset: Pagination offset.
             **kwargs: monument_type, period — additional AIM-specific filters.
         """
+        # Coerce numeric params (may arrive as strings via MCP)
+        lat = float(lat) if lat is not None else None
+        lon = float(lon) if lon is not None else None
+        radius_m = float(radius_m) if radius_m is not None else None
+        max_results = int(max_results)
+        offset = int(offset)
+
         layer_id = int(AIM_DEFAULT_SEARCH_LAYER)
         geometry = self._build_geometry(bbox, lat, lon, radius_m)
         where = self._build_where(

@@ -58,6 +58,13 @@ def register_conservation_area_tools(mcp: object, registry: object) -> None:
             Use her_count_conservation_areas first to gauge result size.
         """
         try:
+            # Coerce numeric params (MCP may pass strings)
+            lat = float(lat) if lat is not None else None
+            lon = float(lon) if lon is not None else None
+            radius_m = float(radius_m) if radius_m is not None else None
+            max_results = int(max_results)
+            offset = int(offset)
+
             bbox_tuple = None
             if bbox:
                 parts = [float(x.strip()) for x in bbox.split(",")]

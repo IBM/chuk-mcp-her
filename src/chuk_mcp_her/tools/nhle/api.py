@@ -101,6 +101,13 @@ def register_nhle_tools(mcp: object, registry: object) -> None:
             - Use her_count_features first for quick totals
         """
         try:
+            # Coerce numeric params (MCP may pass strings)
+            lat = float(lat) if lat is not None else None
+            lon = float(lon) if lon is not None else None
+            radius_m = float(radius_m) if radius_m is not None else None
+            max_results = int(max_results)
+            offset = int(offset)
+
             bbox_tuple = _parse_bbox(bbox)
             query = name or description
 
@@ -234,6 +241,13 @@ def register_nhle_tools(mcp: object, registry: object) -> None:
             - Use bbox or lat/lon to limit by area
         """
         try:
+            # Coerce numeric params (MCP may pass strings)
+            lat = float(lat) if lat is not None else None
+            lon = float(lon) if lon is not None else None
+            radius_m = float(radius_m) if radius_m is not None else None
+            max_results = int(max_results)
+            offset = int(offset)
+
             if grade and grade not in LISTING_GRADES:
                 return format_response(
                     ErrorResponse(
@@ -331,6 +345,13 @@ def register_nhle_tools(mcp: object, registry: object) -> None:
             - Results include designation_type so you can see the mix
         """
         try:
+            # Coerce numeric params (MCP may pass strings)
+            lat = float(lat) if lat is not None else None
+            lon = float(lon) if lon is not None else None
+            radius_m = float(radius_m) if radius_m is not None else None
+            max_results = int(max_results)
+            offset = int(offset)
+
             if designation_type and designation_type not in DESIGNATION_TYPES:
                 return format_response(
                     ErrorResponse(

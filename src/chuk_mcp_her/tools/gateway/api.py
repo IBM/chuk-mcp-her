@@ -49,6 +49,9 @@ def register_gateway_tools(mcp: object, registry: object) -> None:
             Use her_search_monuments for NHLE data as a reliable alternative.
         """
         try:
+            # Coerce numeric params (MCP may pass strings)
+            max_results = int(max_results)
+
             result = await registry.search_heritage_gateway(  # type: ignore[union-attr]
                 what=what,
                 where=where,

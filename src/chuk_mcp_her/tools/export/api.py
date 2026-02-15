@@ -83,6 +83,9 @@ def register_export_tools(mcp: object, registry: object) -> None:
             - Coordinates are in WGS84 (EPSG:4326)
         """
         try:
+            # Coerce numeric params (MCP may pass strings)
+            max_results = int(max_results)
+
             bbox_tuple = _parse_bbox(bbox)
             result = await registry.search_designations(  # type: ignore[union-attr]
                 query=name,

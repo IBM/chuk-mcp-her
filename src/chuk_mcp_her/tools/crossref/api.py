@@ -90,6 +90,10 @@ def register_crossref_tools(mcp: object, registry: object) -> None:
         import json as json_mod
 
         try:
+            # Coerce numeric params (MCP may pass strings)
+            match_radius_m = float(match_radius_m)
+            near_radius_m = float(near_radius_m)
+
             candidate_list = json_mod.loads(candidates)
             if not candidate_list:
                 return format_response(
@@ -240,6 +244,14 @@ def register_crossref_tools(mcp: object, registry: object) -> None:
             - Each result includes distance_m and bearing_deg
         """
         try:
+            # Coerce numeric params (MCP may pass strings)
+            lat = float(lat) if lat is not None else None
+            lon = float(lon) if lon is not None else None
+            easting = float(easting) if easting is not None else None
+            northing = float(northing) if northing is not None else None
+            radius_m = float(radius_m)
+            max_results = int(max_results)
+
             # Resolve centre point to both coordinate systems
             if lat is not None and lon is not None:
                 centre_lat, centre_lon = lat, lon
@@ -350,6 +362,9 @@ def register_crossref_tools(mcp: object, registry: object) -> None:
             - Results include only records with successfully resolved coordinates
         """
         try:
+            # Coerce numeric params (MCP may pass strings)
+            max_results = int(max_results)
+
             records, total_searched = await registry.enrich_gateway_records(  # type: ignore[union-attr]
                 what=what,
                 where=where,
