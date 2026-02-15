@@ -46,7 +46,11 @@ def register_gateway_tools(mcp: object, registry: object) -> None:
         Tips for LLMs:
             This is the best source for undesignated sites and local HER data.
             Results may be empty if the Gateway is temporarily unavailable.
-            Use her_search_monuments for NHLE data as a reliable alternative.
+            IMPORTANT: Gateway results cover only local HER records. For
+            comprehensive coverage, ALSO run her_search_monuments (NHLE) and
+            her_search_aerial (AIM) in the same area and merge the results.
+            For spatial filtering, use her_enrich_gateway to resolve BNG
+            coordinates, then apply a bbox to filter precisely.
         """
         try:
             # Coerce numeric params (MCP may pass strings)

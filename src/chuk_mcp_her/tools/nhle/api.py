@@ -99,6 +99,10 @@ def register_nhle_tools(mcp: object, registry: object) -> None:
             - Use name for text-based searches (e.g. "red hill")
             - Follow up with her_get_monument for full details
             - Use her_count_features first for quick totals
+            - NHLE only contains designated assets. For undesignated sites
+              (red hills, findspots, local HER records), ALSO search
+              her_search_heritage_gateway and her_search_aerial in the
+              same area to get comprehensive coverage.
         """
         try:
             # Coerce numeric params (MCP may pass strings)

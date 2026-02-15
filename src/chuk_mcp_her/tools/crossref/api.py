@@ -360,6 +360,9 @@ def register_crossref_tools(mcp: object, registry: object) -> None:
             - Pass the output records as gateway_sites to her_cross_reference
             - Set fetch_details=false for faster results (grid refs only)
             - Results include only records with successfully resolved coordinates
+            - While waiting for this, also run her_search_monuments and/or
+              her_search_aerial in the same area for comprehensive coverage —
+              Gateway records are local HER data not in NHLE or AIM
         """
         try:
             # Coerce numeric params (MCP may pass strings)

@@ -305,16 +305,22 @@ def register_discovery_tools(mcp: object, registry: object) -> None:
                     max_results_per_query=2000,
                     tool_count=len(tools),
                     llm_guidance=(
-                        "Start with her_search_monuments for spatial queries. "
-                        "Use her_search_aerial for cropmarks, earthworks, and "
-                        "features identified from aerial photos/LiDAR (not in NHLE). "
-                        "Use her_search_conservation_areas for designated "
-                        "conservation areas by name or local planning authority. "
-                        "Use her_search_heritage_at_risk for assets on the "
-                        "Heritage at Risk Register. "
-                        "Use her_search_heritage_gateway for local HER data not "
-                        "in NHLE (e.g. red hills, undesignated sites). "
-                        "Use count tools before fetching full records."
+                        "MULTI-SOURCE QUERIES: No single source has everything. "
+                        "For comprehensive area surveys, ALWAYS search multiple "
+                        "sources and merge results: "
+                        "(1) her_search_monuments — NHLE designated assets "
+                        "(scheduled monuments, listed buildings). "
+                        "(2) her_search_aerial — AIM cropmarks, earthworks, "
+                        "saltern mounds from aerial photos/LiDAR (not in NHLE). "
+                        "(3) her_search_heritage_gateway — local HER records "
+                        "for undesignated sites (red hills, findspots, fieldwork). "
+                        "WORKFLOW: For a location query, run all relevant sources "
+                        "in parallel, then combine and present unified results. "
+                        "Use her_enrich_gateway to resolve Gateway coordinates, "
+                        "then her_cross_reference to deduplicate across sources. "
+                        "Use her_search_conservation_areas for conservation areas "
+                        "and her_search_heritage_at_risk for at-risk assets. "
+                        "Use count tools before fetching large result sets."
                     ),
                     message=f"{len(tools)} tools across {len(source_infos)} sources",
                 ),

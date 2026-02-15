@@ -56,7 +56,12 @@ def register_aerial_tools(mcp: object, registry: object) -> None:
         Tips for LLMs:
             Use monument_type and period as uppercase keywords.
             Combine with bbox or lat/lon for spatial queries.
-            These features are NOT in the NHLE — they complement her_search_monuments.
+            These features are NOT in the NHLE — they complement
+            her_search_monuments. For comprehensive area surveys, run
+            all three sources: her_search_monuments (NHLE designated),
+            her_search_aerial (AIM cropmarks/earthworks), and
+            her_search_heritage_gateway (local HER undesignated sites),
+            then merge and deduplicate the results.
         """
         try:
             # Coerce numeric params (MCP may pass strings)
