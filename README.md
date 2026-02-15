@@ -251,7 +251,7 @@ mcp-cli chat --server her
 
 ## Example Usage
 
-Once configured, you can ask Claude questions like:
+Once configured, you can ask questions like:
 
 - "List the available heritage data sources"
 - "Search for scheduled monuments near Stonehenge"
@@ -263,6 +263,18 @@ Once configured, you can ask Claude questions like:
 - "Cross-reference these LiDAR survey points against known heritage assets"
 - "Search for protected wrecks along the English coast"
 - "Find registered parks and gardens near Bath"
+- "Search for all red hills along the north bank of the Blackwater estuary between Heybridge Basin and Tollesbury"
+
+**Multi-source queries:** The tool descriptions guide LLM agents to combine
+multiple sources automatically. A query like "find all red hills near the
+Blackwater" will prompt the agent to search NHLE (designated monuments), AIM
+(aerial mapping features), and Heritage Gateway (local HER records), then
+merge the results for comprehensive coverage.
+
+**Model-agnostic:** The MCP server works with any LLM provider that supports
+function calling -- Claude, GPT, Gemini, or any other MCP-compatible client.
+The same tools work identically through Claude Desktop, mcp-cli, or the
+Python SDK.
 
 ### Running the Examples
 

@@ -62,6 +62,12 @@ All tools accept the following optional parameter:
 |-----------|------|---------|-------------|
 | `output_mode` | `str` | `json` | Response format: `json` (structured) or `text` (human-readable) |
 
+**Type coercion:** All numeric parameters (`float`, `int`) are explicitly
+coerced at the tool boundary. MCP clients may pass numeric values as strings
+(e.g. `"51.76"` instead of `51.76`), so every tool entry point casts `lat`,
+`lon`, `radius_m`, `max_results`, `offset`, and similar parameters to their
+declared types before use.
+
 ---
 
 ### Discovery Tools
@@ -136,8 +142,13 @@ Full server capabilities for LLM workflow planning.
 | `spatial_references` | `int[]` | Supported SRIDs |
 | `max_results_per_query` | `int` | Maximum results per query (2000) |
 | `tool_count` | `int` | Total tool count |
-| `llm_guidance` | `str` | LLM query planning guidance |
+| `llm_guidance` | `str` | LLM query planning guidance (multi-source workflow) |
 | `message` | `str` | Result message |
+
+The `llm_guidance` field instructs agents to **always search multiple sources
+for comprehensive coverage**: NHLE (designated assets), AIM (aerial mapping),
+and Heritage Gateway (local HER undesignated sites). Individual tool descriptions
+also cross-reference related tools to drive multi-source behaviour.
 
 ---
 

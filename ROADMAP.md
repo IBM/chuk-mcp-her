@@ -137,6 +137,29 @@ Spatial indexing, AIM integration, enriched output for cross-referencing and LiD
 - 5 data sources
 - 667 tests (529 → 667), 97% overall coverage, 12 demos
 
+### Phase 1.4 -- Type Safety and Multi-Source Guidance
+
+Type coercion at MCP boundary and improved tool descriptions for multi-source workflows.
+
+**Type coercion (all tool entry points):**
+- Explicit `float()`/`int()` coercion for all numeric parameters at tool boundary
+- Defence-in-depth coercion also applied at adapter layer
+- Fixes MCP clients that pass numeric values as strings (e.g. `"51.76"` for `float`)
+- Resolves: `"must be real number, not str"` in aerial search,
+  `"slice indices must be integers"` in Heritage Gateway search
+
+**Multi-source tool descriptions:**
+- Every source-specific tool now cross-references related tools from other sources
+- `her_capabilities` `llm_guidance` rewritten to lead with multi-source workflow
+- Agents now guided to search NHLE + AIM + Heritage Gateway in parallel for
+  comprehensive area surveys, rather than stopping after a single source
+- Validated end-to-end with GPT-5-mini via mcp-cli (model-agnostic proof)
+
+**Deliverables:**
+- 23 tools (no new tools -- internal fixes and description improvements)
+- 5 data sources
+- Model-agnostic validation (OpenAI GPT-5-mini through mcp-cli)
+
 ---
 
 ## Planned
@@ -248,13 +271,13 @@ This server is part of a composable stack of MCP servers:
 
 All servers follow the same patterns: Pydantic v2 models, dual output mode, async-first.
 
-**Example heritage investigation pipeline:**
-1. `her_search_monuments` -- find scheduled monuments in an area
-2. `her_count_features` -- assess heritage density before detailed search
-3. `her_export_for_lidar` -- get known sites for LiDAR cross-reference
-4. `her_cross_reference` -- classify LiDAR anomalies against known assets
+**Example heritage investigation pipeline (multi-source):**
+1. `her_search_monuments` -- find NHLE designated assets in an area
+2. `her_search_aerial` -- find AIM cropmarks, earthworks, saltern mounds
+3. `her_enrich_gateway` -- find local HER records with resolved coordinates
+4. `her_cross_reference` -- classify LiDAR anomalies against all known assets
 5. `her_nearby` -- check what other heritage assets are near a discovery
-6. `her_export_geojson` -- export findings for GIS visualisation
+6. `her_export_geojson` -- export combined findings for GIS visualisation
 
 ---
 

@@ -482,6 +482,39 @@ The NHLE adapter queries multiple ArcGIS layers for broad searches:
 3. If multiple layers, `asyncio.gather()` counts each layer in parallel
 4. Layer results are normalised and merged, with `designation_type` set per layer
 
+### Type Coercion at Tool Boundary
+
+MCP clients may pass numeric parameters as strings (e.g. `"51.76"` instead of
+`51.76`, `"50"` instead of `50`). Every tool entry point explicitly coerces
+numeric parameters before use:
+
+```python
+lat = float(lat) if lat is not None else None
+lon = float(lon) if lon is not None else None
+radius_m = float(radius_m) if radius_m is not None else None
+max_results = int(max_results)
+offset = int(offset)
+```
+
+This defence-in-depth pattern is applied at both the tool layer (`tools/*/api.py`)
+and the adapter layer (`core/adapters/*.py`), ensuring type safety regardless of
+which MCP client or LLM provider is calling the tools.
+
+### Multi-Source Tool Descriptions
+
+Tool descriptions include explicit cross-references to related tools from other
+data sources. This guides LLM agents to combine queries automatically:
+
+- **`her_search_heritage_gateway`** tips say: "ALSO run her_search_monuments
+  (NHLE) and her_search_aerial (AIM) in the same area"
+- **`her_search_monuments`** tips say: "For undesignated sites, ALSO search
+  her_search_heritage_gateway and her_search_aerial"
+- **`her_capabilities`** `llm_guidance` leads with: "MULTI-SOURCE QUERIES:
+  No single source has everything"
+
+This pattern ensures that agents search all relevant sources for comprehensive
+coverage, rather than stopping after querying a single source.
+
 ### Dual Output Mode
 
 All tools accept an `output_mode` parameter (`"json"` or `"text"`). The
