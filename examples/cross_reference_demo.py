@@ -7,8 +7,16 @@ anomaly detection) against known heritage assets. Candidates are
 classified as "match" (within 50m of a known asset), "near"
 (within 200m), or "novel" (no nearby match).
 
+Shows three modes:
+  1. NHLE-only cross-reference (baseline)
+  2. NHLE + AIM aerial features (include_aim=True)
+  3. Text output mode
+
+Enriched match output includes source, grade, monument_type,
+period, form, and evidence fields where available.
+
 Demonstrates:
-    her_cross_reference
+    her_cross_reference (with include_aim parameter)
     her_count_features (for context)
 
 NOTE: This demo makes live API calls to the Historic England

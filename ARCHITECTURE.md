@@ -103,11 +103,14 @@ No live API calls are made during testing.
                   |       SourceRegistry          |
                   |  - search_monuments()         |
                   |  - search_listed_buildings()  |
+                  |  - search_designations()      |
+                  |  - search_aerial()            |
                   |  - search_conservation_areas()|
                   |  - search_heritage_at_risk()  |
                   |  - search_heritage_gateway()  |
                   |  - count_features()           |
                   |  - nearby()                   |
+                  |  - enrich_gateway_records()   |
                   +-------------------------------+
                     |     |     |     |     |
             NHLEAdapter   |  CA     HAR    |

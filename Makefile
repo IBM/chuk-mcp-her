@@ -178,6 +178,15 @@ docker-run:
 	@echo "Running Docker container..."
 	docker run --rm -p 8010:8010 chuk-mcp-her:latest
 
+# Deploy to Fly.io
+fly-deploy:
+	@echo "Deploying to Fly.io..."
+	fly deploy
+
+# View Fly.io logs
+fly-logs:
+	fly logs
+
 # ============================================================================
 # Version Management and Release Targets
 # ============================================================================

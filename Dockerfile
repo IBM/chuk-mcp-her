@@ -19,7 +19,8 @@ ENV PATH="/root/.local/bin:${PATH}"
 COPY pyproject.toml README.md ./
 COPY src ./src
 
-RUN uv pip install --system --no-cache -e .
+# Install the package (non-editable for Docker)
+RUN uv pip install --system --no-cache .
 
 # Runtime stage
 FROM python:3.11-slim
@@ -50,11 +51,11 @@ ENV PYTHONUNBUFFERED=1 \
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import sys; sys.path.insert(0, '/app/src'); import chuk_mcp_her; print('OK')" || exit 1
 
-CMD ["python", "-m", "chuk_mcp_her.server", "http"]
+CMD ["python", "-m", "chuk_mcp_her.server", "http", "--host", "0.0.0.0"]
 
 EXPOSE 8010
 
 LABEL description="Historic Environment Records MCP Server" \
-      version="0.1.0" \
+      version="0.3.0" \
       org.opencontainers.image.title="HER MCP Server" \
       org.opencontainers.image.description="MCP server for Historic Environment Records, heritage databases, and national designation lists"

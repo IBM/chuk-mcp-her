@@ -12,7 +12,7 @@ and gardens, battlefields, protected wrecks, and World Heritage Sites -- plus lo
 HER data via Heritage Gateway web scraping. Provides tools for cross-referencing,
 nearby search, and export.
 
-- **23 tools** across 8 categories (3 discovery, 5 NHLE, 3 aerial, 3 conservation area, 3 heritage at risk, 1 gateway, 3 crossref, 2 export)
+- **23 tools** across 8 categories (3 discovery, 5 NHLE, 3 aerial, 3 conservation area, 3 heritage at risk, 1 gateway, 3 cross-referencing, 2 export)
 - **5 data sources**: NHLE, AIM, Conservation Areas, Heritage at Risk (all via ArcGIS), Heritage Gateway (web scraper)
 - **Spatial-first queries** via ArcGIS Feature Service with BNG/WGS84 support
 - **Async-first** -- tool entry points are async; httpx for all HTTP requests
@@ -604,6 +604,8 @@ Cross-reference candidate locations against known heritage assets.
 | `match_radius_m` | `float` | `50.0` | Distance threshold for "match" classification |
 | `near_radius_m` | `float` | `200.0` | Distance threshold for "near" classification |
 | `designation_types` | `str?` | `None` | Comma-separated designation types to match against |
+| `include_aim` | `bool` | `false` | Include AIM aerial mapping features in known-asset pool |
+| `gateway_sites` | `str` | `"[]"` | JSON array of enriched Gateway records (output of `her_enrich_gateway`) |
 
 **Response:** `CrossReferenceResponse`
 
@@ -626,6 +628,25 @@ Cross-reference candidate locations against known heritage assets.
 | `nearest_asset` | `dict?` | Nearest asset (for "near" classification) |
 | `distance_m` | `float?` | Distance to nearest asset |
 | `classification` | `str` | `match`, `near`, or `novel` |
+
+**Matched/nearest asset fields** (enriched output, None fields excluded):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `record_id` | `str?` | Asset record ID |
+| `name` | `str?` | Asset name |
+| `source` | `str?` | Source ID (`nhle`, `aim`, `heritage_gateway`) |
+| `designation_type` | `str?` | NHLE designation type |
+| `grade` | `str?` | Listing grade (NHLE listed buildings) |
+| `monument_type` | `str?` | Monument type (AIM, Gateway) |
+| `period` | `str?` | Period (AIM, Gateway) |
+| `form` | `str?` | Form (AIM) |
+| `evidence` | `str?` | Evidence type (AIM) |
+| `easting` | `float?` | BNG easting |
+| `northing` | `float?` | BNG northing |
+
+Candidate classification uses a grid-based spatial index (`GridSpatialIndex`)
+for O(n+m) amortised nearest-neighbour lookup.
 
 ---
 
@@ -670,6 +691,48 @@ Find heritage assets near a single point.
 | `lon` | `float?` | WGS84 longitude |
 | `easting` | `float?` | BNG easting |
 | `northing` | `float?` | BNG northing |
+
+---
+
+#### `her_enrich_gateway`
+
+Fetch Heritage Gateway records with resolved BNG coordinates. Searches the
+Heritage Gateway for local HER records and resolves their coordinates by parsing
+grid references and/or fetching detail pages. Returns only records with valid
+easting/northing, suitable for use as `gateway_sites` in `her_cross_reference`
+or `her_export_for_lidar`.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `what` | `str?` | `None` | Monument type or keyword (e.g. `"red hill"`, `"saltern"`) |
+| `where` | `str?` | `None` | Place name (e.g. `"Blackwater"`, `"Essex"`) |
+| `when` | `str?` | `None` | Period (e.g. `"Roman"`, `"Iron Age"`) |
+| `max_results` | `int` | `100` | Maximum records to return |
+| `fetch_details` | `bool` | `true` | Fetch detail pages to resolve coordinates (slow but more accurate) |
+
+**Response:** `GatewayEnrichResponse`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `records` | `dict[]` | Records with resolved BNG coordinates |
+| `count` | `int` | Number of resolved records |
+| `resolved_count` | `int` | Records with valid easting/northing |
+| `unresolved_count` | `int` | Records without coordinates |
+| `fetch_details_used` | `bool` | Whether detail pages were fetched |
+| `message` | `str` | Result message |
+
+**Enriched record fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `record_id` | `str` | Heritage Gateway record ID |
+| `name` | `str` | Record name |
+| `monument_type` | `str?` | Monument type |
+| `easting` | `float` | BNG easting (resolved) |
+| `northing` | `float` | BNG northing (resolved) |
+| `grid_reference` | `str?` | Grid reference (if available) |
 
 ---
 
@@ -730,8 +793,9 @@ Export known heritage sites for LiDAR cross-referencing.
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `bbox` | `str` | *required* | Bounding box in BNG |
-| `include_aim` | `bool` | `true` | Include AIM features (when available) |
+| `include_aim` | `bool` | `true` | Include AIM aerial mapping features |
 | `include_nhle` | `bool` | `true` | Include NHLE designations |
+| `gateway_sites` | `str` | `"[]"` | JSON array of enriched Gateway records (output of `her_enrich_gateway`) |
 
 **Response:** `LiDARExportResponse`
 
@@ -742,16 +806,21 @@ Export known heritage sites for LiDAR cross-referencing.
 | `count` | `int` | Number of sites |
 | `message` | `str` | Result message |
 
-**Known site fields:**
+**Known site fields** (varies by source, None fields excluded):
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | `str` | Record ID |
-| `source` | `str` | Source ID |
-| `name` | `str` | Site name |
-| `type` | `str` | Designation type |
-| `easting` | `float` | BNG easting |
-| `northing` | `float` | BNG northing |
+| Field | Type | Source | Description |
+|-------|------|--------|-------------|
+| `id` | `str` | all | Record ID |
+| `source` | `str` | all | Source ID (`nhle`, `aim`, `heritage_gateway`) |
+| `name` | `str` | all | Site name |
+| `type` | `str` | all | Designation/monument type |
+| `grade` | `str?` | nhle | Listing grade (I, II*, II) |
+| `monument_type` | `str?` | aim, gateway | Monument type |
+| `period` | `str?` | aim, gateway | Period |
+| `form` | `str?` | aim | Form |
+| `evidence` | `str?` | aim | Evidence type |
+| `easting` | `float` | all | BNG easting |
+| `northing` | `float` | all | BNG northing |
 
 ---
 
@@ -878,8 +947,8 @@ cache_key = f"{source_id}/{sha256(sorted_params)[:16]}"
 |-------|-------|-----------|------------|
 | 1.0 | NHLE Core | 14 | 14 |
 | 1.1 | Aerial Investigation Mapping | 2 | 16 |
-| 1.2 | Conservation Areas, Heritage at Risk, Heritage Gateway | 6 | 22 |
-| 1.3 | Cross-Referencing Enhancements | 0 | 22 |
+| 1.2 | Conservation Areas, Heritage at Risk, Heritage Gateway | 7 | 23 |
+| 1.3 | Cross-Referencing Enhancements | 0 | 23 |
 | 2.0 | Scotland (Canmore) | 1 | 23 |
 | 2.1 | Wales (Coflein) | 1 | 24 |
 | 2.2 | New Heritage Gateway API | 0 | 24 |
@@ -924,7 +993,8 @@ Protection of Wrecks Act 1973.
 | `heritage_at_risk_demo.py` | `her_search_heritage_at_risk`, `her_count_heritage_at_risk`, `her_get_heritage_at_risk` | Yes |
 | `nearby_demo.py` | `her_nearby` | Yes |
 | `export_demo.py` | `her_export_geojson`, `her_export_for_lidar` | Yes |
-| `cross_reference_demo.py` | `her_cross_reference` | Yes |
+| `gateway_search_demo.py` | `her_search_heritage_gateway` | Yes |
+| `cross_reference_demo.py` | `her_cross_reference` (with `include_aim`) | Yes |
 | `enrichment_pipeline_demo.py` | `her_enrich_gateway`, `her_search_heritage_gateway`, `her_cross_reference`, `her_count_features` | Yes |
 | `blackwater_estuary_scenario.py` | Multi-source scenario using NHLE, AIM, Conservation Areas, Heritage at Risk | Yes |
 

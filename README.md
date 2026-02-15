@@ -83,10 +83,11 @@ Spatial matching, enrichment, and proximity search:
 
 Export and format results:
 - GeoJSON FeatureCollection for QGIS, Leaflet, or other GIS tools
-- LiDAR cross-reference format with BNG coordinates
-- Known site centroids with enriched metadata for spatial matching
-- AIM aerial features with monument_type, period, form, evidence
-- NHLE sites with grade, Gateway sites with monument_type and period
+- LiDAR cross-reference format with enriched metadata per source:
+  - NHLE sites with grade
+  - AIM aerial features with monument_type, period, form, evidence
+  - Gateway sites with monument_type and period
+- Optional AIM integration (`include_aim`) and Gateway sites (`gateway_sites`) for LiDAR export
 
 ## Tool Reference
 

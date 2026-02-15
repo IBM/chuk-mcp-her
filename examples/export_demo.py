@@ -4,11 +4,12 @@ Export Demo -- chuk-mcp-her
 
 Export heritage assets as GeoJSON FeatureCollection and in the
 LiDAR cross-reference format. Shows filtering by designation type,
-bounding box, and the full GeoJSON structure.
+bounding box, the full GeoJSON structure, and the effect of
+include_aim on LiDAR export.
 
 Demonstrates:
     her_export_geojson (multiple filter combinations)
-    her_export_for_lidar
+    her_export_for_lidar (with include_aim comparison)
 
 NOTE: This demo makes live API calls to the Historic England
 ArcGIS Feature Service.
@@ -145,8 +146,40 @@ async def main() -> None:
     else:
         print(f"  Error: {result['error']}")
 
-    # ----- Export 5: Text output mode ---------------------------------
-    section("5. Text Output Mode (GeoJSON)")
+    # ----- Export 5: LiDAR export — AIM comparison ---------------------
+    section("5. LiDAR Export: NHLE Only vs NHLE + AIM")
+
+    result_nhle_only = await runner.run(
+        "her_export_for_lidar",
+        bbox="586000,205000,602500,215000",
+        include_aim=False,
+    )
+    result_with_aim = await runner.run(
+        "her_export_for_lidar",
+        bbox="586000,205000,602500,215000",
+        include_aim=True,
+    )
+    if "error" not in result_nhle_only and "error" not in result_with_aim:
+        nhle_count = result_nhle_only["count"]
+        aim_count = result_with_aim["count"]
+        print(f"  NHLE only:      {nhle_count} known sites")
+        print(f"  NHLE + AIM:     {aim_count} known sites")
+        print(f"  AIM added:      {aim_count - nhle_count} aerial features")
+
+        # Show source breakdown for combined
+        sources: dict[str, int] = {}
+        for site in result_with_aim.get("known_sites", []):
+            src = site.get("source", "unknown")
+            sources[src] = sources.get(src, 0) + 1
+        print("  Sources:")
+        for src, count in sorted(sources.items()):
+            print(f"    {src}: {count}")
+    else:
+        err = result_nhle_only.get("error") or result_with_aim.get("error")
+        print(f"  Error: {err}")
+
+    # ----- Export 6: Text output mode ---------------------------------
+    section("6. Text Output Mode (GeoJSON)")
 
     text = await runner.run_text(
         "her_export_geojson",
@@ -156,8 +189,8 @@ async def main() -> None:
     )
     print(text)
 
-    # ----- Export 6: Full GeoJSON output (first 3 features) -----------
-    section("6. Raw GeoJSON (first 3 features)")
+    # ----- Export 7: Full GeoJSON output (first 3 features) -----------
+    section("7. Raw GeoJSON (first 3 features)")
 
     result = await runner.run(
         "her_export_geojson",
