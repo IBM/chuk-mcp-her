@@ -34,7 +34,7 @@ class TestDiscoveryTools:
         assert "server" in parsed
         assert parsed["server"] == "chuk-mcp-her"
         assert parsed["version"] == "0.3.0"
-        assert parsed["tool_count"] == 23
+        assert parsed["tool_count"] == 26
         assert "sources" in parsed
         assert "nhle" in parsed["sources"]
 
@@ -46,14 +46,15 @@ class TestDiscoveryTools:
     async def test_her_list_sources(self):
         result = await self.mcp.get_tool("her_list_sources")()
         parsed = json.loads(result)
-        assert parsed["count"] == 5
-        assert len(parsed["sources"]) == 5
+        assert parsed["count"] == 6
+        assert len(parsed["sources"]) == 6
         source_ids = [s["source_id"] for s in parsed["sources"]]
         assert "nhle" in source_ids
         assert "aim" in source_ids
         assert "conservation_area" in source_ids
         assert "heritage_at_risk" in source_ids
         assert "heritage_gateway" in source_ids
+        assert "scotland" in source_ids
 
     async def test_her_list_sources_text_mode(self):
         result = await self.mcp.get_tool("her_list_sources")(output_mode="text")

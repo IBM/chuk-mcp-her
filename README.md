@@ -1,6 +1,6 @@
 # chuk-mcp-her
 
-**Historic Environment Records MCP Server** -- A Model Context Protocol (MCP) server for querying Historic Environment Records across England. Searches listed buildings, scheduled monuments, registered parks, battlefields, protected wrecks, and World Heritage Sites via live ArcGIS REST APIs from Historic England.
+**Historic Environment Records MCP Server** -- A Model Context Protocol (MCP) server for querying Historic Environment Records across England and Scotland. Searches listed buildings, scheduled monuments, registered parks, battlefields, protected wrecks, and World Heritage Sites via live ArcGIS REST APIs from Historic England and Historic Environment Scotland.
 
 > This is a demonstration project provided as-is for learning and testing purposes.
 
@@ -9,11 +9,12 @@
 
 ## Features
 
-This MCP server provides structured access to Historic Environment Records through **23 tools** across **8 categories**, querying **5 data sources** via live ArcGIS REST APIs and Heritage Gateway web scraping.
+This MCP server provides structured access to Historic Environment Records through **26 tools** across **9 categories**, querying **6 data sources** via live ArcGIS REST APIs and Heritage Gateway web scraping.
 
 **Key capabilities:**
-- **Source registry pattern** -- pluggable adapters for NHLE, AIM, Conservation Areas, Heritage at Risk, and Heritage Gateway with unified query interface
-- **Spatial-first queries** -- bounding box, point+radius, and area searches via ArcGIS Feature Service
+- **Source registry pattern** -- pluggable adapters for NHLE, AIM, Conservation Areas, Heritage at Risk, Heritage Gateway, and Scotland (HES) with unified query interface
+- **England + Scotland coverage** -- English heritage via Historic England, Scottish heritage via Historic Environment Scotland (320,000+ NRHE records + designated assets)
+- **Spatial-first queries** -- bounding box, point+radius, and area searches via ArcGIS Feature/Map Services
 - **BNG/WGS84 coordinate support** -- automatic conversion between British National Grid (EPSG:27700) and WGS84 (EPSG:4326)
 - **All tools return fully-typed Pydantic v2 models** for type safety, validation, and excellent IDE support
 - **All tools support `output_mode="text"`** for human-readable output alongside the default JSON
@@ -66,7 +67,15 @@ Search local Historic Environment Records via Heritage Gateway:
 - Undesignated sites, findspots, and HER monument entries
 - Returns empty results gracefully when Gateway unavailable
 
-### 7. Cross-Referencing (`her_cross_reference`, `her_enrich_gateway`, `her_nearby`)
+### 7. Scotland (`her_search_scotland`, `her_get_scotland_record`, `her_search_scotland_designations`)
+
+Search Historic Environment Scotland records:
+- 320,000+ National Record of the Historic Environment (NRHE) records via Canmore Points
+- Designated assets: listed buildings, scheduled monuments, gardens and designed landscapes, battlefields, world heritage sites, conservation areas, historic marine protected areas
+- Site type, broad class, and council area filtering
+- Full details for individual records by Canmore ID
+
+### 8. Cross-Referencing (`her_cross_reference`, `her_enrich_gateway`, `her_nearby`)
 
 Spatial matching, enrichment, and proximity search:
 - Cross-reference candidate locations against known heritage assets
@@ -79,7 +88,7 @@ Spatial matching, enrichment, and proximity search:
 - Find nearby heritage assets with distance and bearing
 - Accepts both WGS84 and BNG coordinates
 
-### 8. Export (`her_export_geojson`, `her_export_for_lidar`)
+### 9. Export (`her_export_geojson`, `her_export_for_lidar`)
 
 Export and format results:
 - GeoJSON FeatureCollection for QGIS, Leaflet, or other GIS tools
@@ -113,6 +122,9 @@ All tools accept an optional `output_mode` parameter (`"json"` default, or `"tex
 | `her_count_heritage_at_risk` | At Risk | Count heritage at risk entries in an area | Active |
 | `her_get_heritage_at_risk` | At Risk | Get full details of a heritage at risk entry | Active |
 | `her_search_heritage_gateway` | Gateway | Search local HER data via Heritage Gateway | Active |
+| `her_search_scotland` | Scotland | Search Scottish NRHE records (320K+ sites) | Active |
+| `her_get_scotland_record` | Scotland | Get full details of a Scottish NRHE record | Active |
+| `her_search_scotland_designations` | Scotland | Search Scottish designated heritage assets | Active |
 | `her_cross_reference` | Cross-Ref | Cross-reference candidates against known assets | Active |
 | `her_enrich_gateway` | Cross-Ref | Resolve Gateway record coordinates for cross-referencing | Active |
 | `her_nearby` | Cross-Ref | Find heritage assets near a point | Active |
@@ -128,6 +140,7 @@ All tools accept an optional `output_mode` parameter (`"json"` default, or `"tex
 | `conservation_area` | Conservation Areas | Historic England / LPAs | England | ArcGIS Feature Service | Active |
 | `heritage_at_risk` | Heritage at Risk Register | Historic England | England | ArcGIS Feature Service | Active |
 | `heritage_gateway` | Heritage Gateway (Local HERs) | Historic England / Local HERs | England | Web scraper | Active |
+| `scotland` | Historic Environment Scotland | Historic Environment Scotland | Scotland | ArcGIS Map Service | Active |
 
 ### NHLE Designation Types
 
@@ -264,6 +277,9 @@ Once configured, you can ask questions like:
 - "Search for protected wrecks along the English coast"
 - "Find registered parks and gardens near Bath"
 - "Search for all red hills along the north bank of the Blackwater estuary between Heybridge Basin and Tollesbury"
+- "Find castles in the Scottish Highlands"
+- "Search for brochs near Inverness"
+- "What scheduled monuments are in Edinburgh?"
 
 **Multi-source queries:** The tool descriptions guide LLM agents to combine
 multiple sources automatically. A query like "find all red hills near the
@@ -320,7 +336,7 @@ python blackwater_estuary_scenario.py  # multi-source scenario
                   +-------------------------------+
                   |       Tool Functions          |
                   | discovery/ nhle/ aerial/      |
-                  | conservation_area/            |
+                  | conservation_area/ scotland/  |
                   | heritage_at_risk/ gateway/    |
                   | crossref/ export/             |
                   +-------------------------------+
@@ -331,22 +347,21 @@ python blackwater_estuary_scenario.py  # multi-source scenario
                   |       SourceRegistry          |
                   |   (unified query interface)   |
                   +-------------------------------+
-                    |     |     |     |     |
-            NHLEAdapter   |  CA     HAR    |
-              AIMAdapter  |  Adapter Adapter|
-                          |               GatewayAdapter
-                  v       v       v             v
-          +------------------+        +------------------+
-          |  ArcGIS Client   |        |  Gateway Client  |
-          | (httpx, async,   |        | (httpx, bs4,     |
-          |  rate-limited)   |        |  best-effort)    |
-          +------------------+        +------------------+
-                  |                           |
-                  v                           v
-          +---------------------+    +-------------------+
-          | HE ArcGIS Services  |    | Heritage Gateway  |
-          | NHLE, AIM, CA, HAR  |    | (60+ local HERs)  |
-          +---------------------+    +-------------------+
+                  |     |     |     |     |     |
+          NHLEAdapter   |  CA     HAR    |  ScotlandAdapter
+            AIMAdapter  |  Adapter Adapter|  (2 clients)
+                        |               GatewayAdapter
+                v       v       v             v           v
+        +------------------+  +------------------+  +------------------+
+        |  ArcGIS Client   |  |  Gateway Client  |  |  ArcGIS Client   |
+        | (HE FeatureSvr)  |  | (httpx, bs4)     |  | (HES MapServer)  |
+        +------------------+  +------------------+  +------------------+
+                |                      |                      |
+                v                      v                      v
+        +------------------+  +------------------+  +------------------+
+        | HE ArcGIS Svc    |  | Heritage Gateway |  | inspire.hes.scot |
+        | NHLE,AIM,CA,HAR  |  | (60+ local HERs) |  | Canmore, HES Des |
+        +------------------+  +------------------+  +------------------+
 ```
 
 Built on top of chuk-mcp-server, this server uses:
@@ -357,7 +372,7 @@ Built on top of chuk-mcp-server, this server uses:
 - **BNG/WGS84 Conversion**: Helmert transformation with optional pyproj for sub-metre accuracy
 - **Filesystem Cache**: TTL-based per-source caching to reduce API load
 - **Rate Limiting**: Per-client rate limiting with exponential backoff on 429/5xx
-- **Dual Output**: All 23 tools support `output_mode="text"` for human-readable responses
+- **Dual Output**: All 26 tools support `output_mode="text"` for human-readable responses
 - **Error Messages**: All error strings from `ErrorMessages` constants -- no hardcoded strings
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for design principles and data flow diagrams.
@@ -440,6 +455,8 @@ Apache License 2.0 -- See [LICENSE](LICENSE) for details.
 - [Historic England](https://historicengland.org.uk/) -- National Heritage List for England
 - [NHLE ArcGIS Feature Service](https://services-eu1.arcgis.com/ZOdPfBS3aqqDYPUQ/arcgis/rest/services/National_Heritage_List_for_England_NHLE_v02_VIEW/FeatureServer) -- Live data endpoint
 - [ArcGIS REST API](https://developers.arcgis.com/rest/services-reference/enterprise/query-feature-service-layer/) -- Query specification
+- [Historic Environment Scotland](https://www.historicenvironment.scot/) -- National Record of the Historic Environment
+- [HES ArcGIS MapServer](https://inspire.hes.scot/arcgis/rest/services) -- Scottish heritage data endpoints
 - [Heritage Gateway](https://www.heritagegateway.org.uk/) -- Federated HER search
 - [Model Context Protocol](https://modelcontextprotocol.io/) -- MCP specification
 - [Anthropic](https://www.anthropic.com/) -- Claude and MCP support

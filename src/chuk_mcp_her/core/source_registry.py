@@ -17,6 +17,7 @@ from .adapters.conservation_area import ConservationAreaAdapter
 from .adapters.heritage_at_risk import HeritageAtRiskAdapter
 from .adapters.heritage_gateway import HeritageGatewayAdapter
 from .adapters.nhle import NHLEAdapter
+from .adapters.scotland import ScotlandAdapter
 from .cache import ResponseCache
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ class SourceRegistry:
         self._adapters[SourceId.CONSERVATION_AREA] = ConservationAreaAdapter(cache=self._cache)
         self._adapters[SourceId.HERITAGE_AT_RISK] = HeritageAtRiskAdapter(cache=self._cache)
         self._adapters[SourceId.HERITAGE_GATEWAY] = HeritageGatewayAdapter(cache=self._cache)
+        self._adapters[SourceId.SCOTLAND] = ScotlandAdapter(cache=self._cache)
 
     def list_sources(self) -> list[dict[str, Any]]:
         """Return summary list of all registered sources."""
@@ -429,6 +431,63 @@ class SourceRegistry:
         return enriched, total_searched
 
     # ================================================================
+    # Scotland convenience methods
+    # ================================================================
+
+    async def search_scotland(
+        self,
+        query: str | None = None,
+        bbox: tuple[float, float, float, float] | None = None,
+        lat: float | None = None,
+        lon: float | None = None,
+        radius_m: float | None = None,
+        site_type: str | None = None,
+        broad_class: str | None = None,
+        council: str | None = None,
+        max_results: int = 100,
+    ) -> PaginatedResult:
+        """Search Scottish NRHE records (Canmore Points)."""
+        adapter = self._adapters[SourceId.SCOTLAND]
+        return await adapter.search(
+            query=query,
+            bbox=bbox,
+            lat=lat,
+            lon=lon,
+            radius_m=radius_m,
+            max_results=max_results,
+            site_type=site_type,
+            broad_class=broad_class,
+            council=council,
+        )
+
+    async def get_scotland_record(self, record_id: str) -> dict[str, Any] | None:
+        """Get a single Scottish NRHE record by Canmore ID."""
+        adapter = self._adapters[SourceId.SCOTLAND]
+        return await adapter.get_by_id(record_id)
+
+    async def search_scotland_designations(
+        self,
+        designation_type: str | None = None,
+        query: str | None = None,
+        bbox: tuple[float, float, float, float] | None = None,
+        lat: float | None = None,
+        lon: float | None = None,
+        radius_m: float | None = None,
+        max_results: int = 100,
+    ) -> PaginatedResult:
+        """Search Scottish designated heritage assets."""
+        adapter = self._adapters[SourceId.SCOTLAND]
+        return await adapter.search_designations(
+            designation_type=designation_type,
+            query=query,
+            bbox=bbox,
+            lat=lat,
+            lon=lon,
+            radius_m=radius_m,
+            max_results=max_results,
+        )
+
+    # ================================================================
     # Cross-cutting convenience methods
     # ================================================================
 
@@ -440,7 +499,11 @@ class SourceRegistry:
         designation_types: list[str] | None = None,
         max_results: int = 20,
     ) -> PaginatedResult:
-        """Find heritage assets near a point."""
+        """Find NHLE heritage assets near a point.
+
+        Searches NHLE only. For Scottish or aerial results callers must
+        query ScotlandAdapter.search() or AIMAdapter.search() separately.
+        """
         adapter = self._adapters[SourceId.NHLE]
         dtype = designation_types[0] if designation_types and len(designation_types) == 1 else None
         return await adapter.search(

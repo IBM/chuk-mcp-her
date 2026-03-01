@@ -22,6 +22,9 @@ class ServerConfig(str, Enum):
     DESCRIPTION = "Historic Environment Records"
 
 
+TOOL_COUNT = 26
+
+
 class EnvVar:
     MCP_STDIO = "MCP_STDIO"
     HER_CACHE_DIR = "HER_CACHE_DIR"
@@ -43,6 +46,7 @@ class SourceId(str, Enum):
     CONSERVATION_AREA = "conservation_area"
     HERITAGE_AT_RISK = "heritage_at_risk"
     HERITAGE_GATEWAY = "heritage_gateway"
+    SCOTLAND = "scotland"
 
 
 SOURCE_METADATA: dict[str, dict] = {
@@ -61,13 +65,6 @@ SOURCE_METADATA: dict[str, dict] = {
             "National_Heritage_List_for_England_NHLE_v02_VIEW/FeatureServer"
         ),
         "native_srid": 27700,
-        "capabilities": [
-            "spatial_query",
-            "text_search",
-            "feature_count",
-            "attribute_filter",
-            "pagination",
-        ],
         "designation_types": [
             "listed_building",
             "scheduled_monument",
@@ -94,7 +91,6 @@ SOURCE_METADATA: dict[str, dict] = {
             "HE_AIM_data/FeatureServer"
         ),
         "native_srid": 27700,
-        "capabilities": ["spatial_query", "text_search", "feature_count"],
         "licence": "Open Government Licence",
         "cache_ttl_seconds": 604800,
     },
@@ -113,12 +109,6 @@ SOURCE_METADATA: dict[str, dict] = {
             "Conservation_Areas/FeatureServer"
         ),
         "native_srid": 27700,
-        "capabilities": [
-            "spatial_query",
-            "text_search",
-            "feature_count",
-            "pagination",
-        ],
         "licence": "Open Government Licence",
         "cache_ttl_seconds": 86400,
     },
@@ -138,13 +128,6 @@ SOURCE_METADATA: dict[str, dict] = {
             "Historic_England_Heritage_at_Risk_Register_2024/FeatureServer"
         ),
         "native_srid": 3857,
-        "capabilities": [
-            "spatial_query",
-            "text_search",
-            "feature_count",
-            "attribute_filter",
-            "pagination",
-        ],
         "heritage_categories": [
             "Scheduled Monument",
             "Listed Building",
@@ -167,12 +150,35 @@ SOURCE_METADATA: dict[str, dict] = {
         "coverage": "England",
         "api_type": "web_scraper",
         "base_url": "https://www.heritagegateway.org.uk",
-        "capabilities": ["text_search"],
         "note": (
             "Scraper-based — best-effort access to 60+ local HERs. "
             "Returns empty results gracefully when Gateway is unavailable."
         ),
         "cache_ttl_seconds": 3600,
+    },
+    "scotland": {
+        "name": "Historic Environment Scotland",
+        "organisation": "Historic Environment Scotland",
+        "description": (
+            "National Record of the Historic Environment (NRHE) and "
+            "Scottish designated heritage assets including listed buildings, "
+            "scheduled monuments, gardens, battlefields, and conservation areas"
+        ),
+        "coverage": "Scotland",
+        "api_type": "arcgis_map_service",
+        "base_url": "https://inspire.hes.scot/arcgis/rest/services",
+        "native_srid": 27700,
+        "designation_types": [
+            "listed_building",
+            "scheduled_monument",
+            "garden_designed_landscape",
+            "battlefield",
+            "world_heritage_site",
+            "conservation_area",
+            "historic_marine_protected_area",
+        ],
+        "licence": "UK Open Government Licence v3.0",
+        "cache_ttl_seconds": 86400,
     },
 }
 
@@ -251,6 +257,75 @@ AIM_DEFAULT_SEARCH_LAYER = AIMLayer.DETAILED_MAPPING
 
 
 # ============================================================================
+# Scotland Layer Configuration
+# ============================================================================
+
+
+class ScotlandNRHELayer(int, Enum):
+    """ArcGIS MapServer layer indices for Canmore Points (NRHE)."""
+
+    TERRESTRIAL = 0
+    MARITIME = 1
+
+
+class ScotlandDesignationLayer(int, Enum):
+    """ArcGIS MapServer layer indices for HES Designations."""
+
+    LISTED_BUILDING_POINTS = 0
+    HISTORIC_MARINE_PROTECTED_AREA = 1
+    CONSERVATION_AREA = 2
+    BATTLEFIELD = 3
+    GARDEN_DESIGNED_LANDSCAPE = 4
+    SCHEDULED_MONUMENT = 5
+    WORLD_HERITAGE_SITE = 6
+    LISTED_BUILDING_POLYGONS = 7
+
+
+# Mapping from designation type to Scotland designation layer ID
+SCOTLAND_DESIGNATION_LAYERS: dict[str, list[int]] = {
+    "listed_building": [ScotlandDesignationLayer.LISTED_BUILDING_POINTS],
+    "scheduled_monument": [ScotlandDesignationLayer.SCHEDULED_MONUMENT],
+    "garden_designed_landscape": [ScotlandDesignationLayer.GARDEN_DESIGNED_LANDSCAPE],
+    "battlefield": [ScotlandDesignationLayer.BATTLEFIELD],
+    "world_heritage_site": [ScotlandDesignationLayer.WORLD_HERITAGE_SITE],
+    "conservation_area": [ScotlandDesignationLayer.CONSERVATION_AREA],
+    "historic_marine_protected_area": [ScotlandDesignationLayer.HISTORIC_MARINE_PROTECTED_AREA],
+}
+
+ALL_SCOTLAND_DESIGNATION_POINT_LAYERS: list[int] = [
+    ScotlandDesignationLayer.LISTED_BUILDING_POINTS,
+    ScotlandDesignationLayer.SCHEDULED_MONUMENT,
+    ScotlandDesignationLayer.GARDEN_DESIGNED_LANDSCAPE,
+    ScotlandDesignationLayer.BATTLEFIELD,
+    ScotlandDesignationLayer.WORLD_HERITAGE_SITE,
+    ScotlandDesignationLayer.CONSERVATION_AREA,
+    ScotlandDesignationLayer.HISTORIC_MARINE_PROTECTED_AREA,
+]
+
+# Reverse mapping: layer ID -> designation type
+SCOTLAND_LAYER_DESIGNATION: dict[int, str] = {
+    ScotlandDesignationLayer.LISTED_BUILDING_POINTS: "listed_building",
+    ScotlandDesignationLayer.LISTED_BUILDING_POLYGONS: "listed_building",
+    ScotlandDesignationLayer.HISTORIC_MARINE_PROTECTED_AREA: "historic_marine_protected_area",
+    ScotlandDesignationLayer.CONSERVATION_AREA: "conservation_area",
+    ScotlandDesignationLayer.BATTLEFIELD: "battlefield",
+    ScotlandDesignationLayer.GARDEN_DESIGNED_LANDSCAPE: "garden_designed_landscape",
+    ScotlandDesignationLayer.SCHEDULED_MONUMENT: "scheduled_monument",
+    ScotlandDesignationLayer.WORLD_HERITAGE_SITE: "world_heritage_site",
+}
+
+SCOTLAND_DESIGNATION_TYPES: list[str] = [
+    "listed_building",
+    "scheduled_monument",
+    "garden_designed_landscape",
+    "battlefield",
+    "world_heritage_site",
+    "conservation_area",
+    "historic_marine_protected_area",
+]
+
+
+# ============================================================================
 # Heritage Gateway Configuration
 # ============================================================================
 
@@ -323,7 +398,9 @@ MAX_BBOX_AREA_KM2 = 100
 # ============================================================================
 
 
-SourceName = Literal["nhle", "aim", "conservation_area", "heritage_at_risk", "heritage_gateway"]
+SourceName = Literal[
+    "nhle", "aim", "conservation_area", "heritage_at_risk", "heritage_gateway", "scotland"
+]
 
 
 # ============================================================================
@@ -355,6 +432,7 @@ class ErrorMessages:
     TIMEOUT = "Request timed out after {}s"
     INVALID_GRADE = "Invalid grade '{}'. Use: I, II*, or II"
     INVALID_DESIGNATION = "Invalid designation type '{}'. Available: {}"
+    UNKNOWN_CONSERVATION_AREA = "Unknown conservation area"
 
 
 class SuccessMessages:
@@ -379,4 +457,7 @@ class SuccessMessages:
     EXPORT_COMPLETE = "Exported {} features as GeoJSON"
     LIDAR_EXPORT_COMPLETE = "{} known sites exported for LiDAR cross-reference"
     MONUMENT_RETRIEVED = "Monument record retrieved"
+    SCOTLAND_NRHE_FOUND = "Found {} Scottish NRHE records"
+    SCOTLAND_NRHE_RETRIEVED = "Scottish NRHE record retrieved"
+    SCOTLAND_DESIGNATIONS_FOUND = "Found {} Scottish designated heritage assets"
     SERVER_OK = "Server operational with {} sources ({})"

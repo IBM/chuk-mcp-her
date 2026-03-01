@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from ...constants import SUPPORTED_SRIDS, ServerConfig, SuccessMessages
+from ...constants import SUPPORTED_SRIDS, TOOL_COUNT, ServerConfig, SuccessMessages
 from ...models.responses import (
     CapabilitiesResponse,
     ErrorResponse,
@@ -56,7 +56,7 @@ def register_discovery_tools(mcp: object, registry: object) -> None:
                     server=ServerConfig.NAME,
                     version=ServerConfig.VERSION,
                     sources=source_statuses,
-                    tool_count=23,
+                    tool_count=TOOL_COUNT,
                     message=SuccessMessages.SERVER_OK.format(
                         len(sources_list), ", ".join(jurisdictions)
                     ),
@@ -257,6 +257,21 @@ def register_discovery_tools(mcp: object, registry: object) -> None:
                     description="Search local HER data via Heritage Gateway",
                 ),
                 ToolInfo(
+                    name="her_search_scotland",
+                    category="scotland",
+                    description="Search Scottish NRHE records (320K+ sites from Canmore)",
+                ),
+                ToolInfo(
+                    name="her_get_scotland_record",
+                    category="scotland",
+                    description="Get full details of a Scottish NRHE record",
+                ),
+                ToolInfo(
+                    name="her_search_scotland_designations",
+                    category="scotland",
+                    description="Search Scottish designated heritage assets",
+                ),
+                ToolInfo(
                     name="her_cross_reference",
                     category="crossref",
                     description="Cross-reference candidates against known assets",
@@ -295,7 +310,6 @@ def register_discovery_tools(mcp: object, registry: object) -> None:
                     tools=tools,
                     jurisdictions_available=jurisdictions,
                     jurisdictions_roadmap=[
-                        "Scotland",
                         "Wales",
                         "Ireland",
                         "Netherlands",
@@ -308,12 +322,18 @@ def register_discovery_tools(mcp: object, registry: object) -> None:
                         "MULTI-SOURCE QUERIES: No single source has everything. "
                         "For comprehensive area surveys, ALWAYS search multiple "
                         "sources and merge results: "
-                        "(1) her_search_monuments — NHLE designated assets "
+                        "ENGLAND: (1) her_search_monuments — NHLE designated assets "
                         "(scheduled monuments, listed buildings). "
                         "(2) her_search_aerial — AIM cropmarks, earthworks, "
                         "saltern mounds from aerial photos/LiDAR (not in NHLE). "
                         "(3) her_search_heritage_gateway — local HER records "
                         "for undesignated sites (red hills, findspots, fieldwork). "
+                        "SCOTLAND: (4) her_search_scotland — NRHE records "
+                        "(320K+ sites: castles, brochs, cairns, standing stones). "
+                        "(5) her_search_scotland_designations — Scottish listed "
+                        "buildings, scheduled monuments, gardens, battlefields. "
+                        "CROSS-BORDER: For sites near the England/Scotland border, "
+                        "query BOTH English and Scottish sources. "
                         "WORKFLOW: For a location query, run all relevant sources "
                         "in parallel, then combine and present unified results. "
                         "Use her_enrich_gateway to resolve Gateway coordinates, "

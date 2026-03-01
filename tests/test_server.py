@@ -39,11 +39,11 @@ class TestAsyncServer:
         assert hasattr(registry, "get_adapter")
 
     def test_async_server_registry_has_sources(self):
-        """Verify the registry has all 5 sources registered."""
+        """Verify the registry has all 6 sources registered."""
         from chuk_mcp_her.async_server import registry
 
         sources = registry.list_sources()
-        assert len(sources) == 5
+        assert len(sources) == 6
         ids = [s["id"] for s in sources]
         assert "nhle" in ids
         assert "aim" in ids

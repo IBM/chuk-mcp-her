@@ -6,7 +6,7 @@ Utility for running MCP tools standalone without a full MCP runtime.
 Captures tools registered via @mcp.tool decorators and provides
 a simple interface for testing and demos.
 
-23 tools across 8 categories.
+26 tools across 9 categories.
 
 Usage:
     from tool_runner import ToolRunner
@@ -34,6 +34,7 @@ from chuk_mcp_her.tools import (
     register_gateway_tools,
     register_heritage_at_risk_tools,
     register_nhle_tools,
+    register_scotland_tools,
 )
 
 
@@ -75,6 +76,7 @@ class ToolRunner:
         register_conservation_area_tools(self._mcp, self.registry)
         register_heritage_at_risk_tools(self._mcp, self.registry)
         register_gateway_tools(self._mcp, self.registry)
+        register_scotland_tools(self._mcp, self.registry)
         register_crossref_tools(self._mcp, self.registry)
         register_export_tools(self._mcp, self.registry)
 

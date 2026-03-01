@@ -75,6 +75,24 @@ class BaseSourceAdapter(ABC):
         """Get a single record by its identifier."""
         ...
 
+    async def search_designations(
+        self,
+        designation_type: str | None = None,
+        query: str | None = None,
+        bbox: tuple[float, float, float, float] | None = None,
+        lat: float | None = None,
+        lon: float | None = None,
+        radius_m: float | None = None,
+        max_results: int = 100,
+        **kwargs: Any,
+    ) -> PaginatedResult:
+        """Search designated heritage assets for sources that support it.
+
+        Default implementation returns an empty result. Override in adapters
+        that have a separate designation layer (e.g. NHLE, Scotland).
+        """
+        return PaginatedResult(features=[], total_count=0, has_more=False)
+
     async def count(
         self,
         bbox: tuple[float, float, float, float] | None = None,

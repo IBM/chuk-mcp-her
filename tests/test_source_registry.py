@@ -14,10 +14,10 @@ from chuk_mcp_her.core.source_registry import SourceRegistry
 
 
 class TestSourceRegistryListSources:
-    def test_returns_five_sources(self, tmp_path):
+    def test_returns_six_sources(self, tmp_path):
         registry = SourceRegistry(cache_dir=str(tmp_path))
         sources = registry.list_sources()
-        assert len(sources) == 5
+        assert len(sources) == 6
 
     def test_source_ids(self, tmp_path):
         registry = SourceRegistry(cache_dir=str(tmp_path))

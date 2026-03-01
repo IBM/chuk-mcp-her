@@ -313,6 +313,148 @@ SAMPLE_GATEWAY_FEATURES = [
 ]
 
 
+# Sample Scotland NRHE features (as returned by ScotlandAdapter._normalize_nrhe_feature)
+SAMPLE_SCOTLAND_NRHE_FEATURES = [
+    {
+        "record_id": "scotland:12345",
+        "canmore_id": "12345",
+        "site_number": "NT27SE 1",
+        "name": "Edinburgh Castle",
+        "alt_name": None,
+        "source": "scotland",
+        "broad_class": "SECULAR",
+        "site_type": "CASTLE",
+        "form": "Building",
+        "county": "Midlothian",
+        "council": "City of Edinburgh",
+        "parish": "Edinburgh",
+        "grid_reference": "NT 2520 7348",
+        "easting": 325200.0,
+        "northing": 673480.0,
+        "lat": 55.948611,
+        "lon": -3.199444,
+        "url": "https://canmore.org.uk/site/12345",
+    },
+    {
+        "record_id": "scotland:67890",
+        "canmore_id": "67890",
+        "site_number": "NH55NW 1",
+        "name": "Clava Cairns",
+        "alt_name": "Balnuaran of Clava",
+        "source": "scotland",
+        "broad_class": "RELIGIOUS AND FUNERARY",
+        "site_type": "CAIRN",
+        "form": "Earthwork",
+        "county": "Inverness-shire",
+        "council": "Highland",
+        "parish": "Inverness and Bona",
+        "grid_reference": "NH 7571 4449",
+        "easting": 275710.0,
+        "northing": 844490.0,
+        "lat": 57.473333,
+        "lon": -4.073611,
+        "url": "https://canmore.org.uk/site/67890",
+    },
+]
+
+# Sample Scotland NRHE ArcGIS GeoJSON response
+SAMPLE_SCOTLAND_NRHE_ARCGIS_GEOJSON = {
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "CANMOREID": "12345",
+                "SITENUMBER": "NT27SE 1",
+                "NMRSNAME": "Edinburgh Castle",
+                "ALTNAME": None,
+                "BROADCLASS": "SECULAR",
+                "SITETYPE": "CASTLE",
+                "FORM": "Building",
+                "COUNTY": "Midlothian",
+                "COUNCIL": "City of Edinburgh",
+                "PARISH": "Edinburgh",
+                "GRIDREF": "NT 2520 7348",
+                "URL": "https://canmore.org.uk/site/12345",
+                "XCOORD": 325200.0,
+                "YCOORD": 673480.0,
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [325200.0, 673480.0],
+            },
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "CANMOREID": "67890",
+                "SITENUMBER": "NH55NW 1",
+                "NMRSNAME": "Clava Cairns",
+                "ALTNAME": "Balnuaran of Clava",
+                "BROADCLASS": "RELIGIOUS AND FUNERARY",
+                "SITETYPE": "CAIRN",
+                "FORM": "Earthwork",
+                "COUNTY": "Inverness-shire",
+                "COUNCIL": "Highland",
+                "PARISH": "Inverness and Bona",
+                "GRIDREF": "NH 7571 4449",
+                "URL": "https://canmore.org.uk/site/67890",
+                "XCOORD": 275710.0,
+                "YCOORD": 844490.0,
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [275710.0, 844490.0],
+            },
+        },
+    ],
+}
+
+# Sample Scotland designation features
+SAMPLE_SCOTLAND_DESIGNATION_FEATURES = [
+    {
+        "record_id": "scotland_des:LB12345",
+        "designation_reference": "LB12345",
+        "name": "St Giles Cathedral",
+        "source": "scotland",
+        "designation_type": "listed_building",
+        "category": "A",
+        "designated_date": "1970-01-01",
+        "local_authority": "City of Edinburgh",
+        "easting": 325700.0,
+        "northing": 673600.0,
+        "lat": 55.949722,
+        "lon": -3.191667,
+        "url": "https://portal.historicenvironment.scot/designation/LB12345",
+    },
+]
+
+# Sample Scotland designation ArcGIS GeoJSON response
+SAMPLE_SCOTLAND_DESIGNATION_ARCGIS_GEOJSON = {
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "DES_REF": "LB12345",
+                "DES_TITLE": "St Giles Cathedral",
+                "DES_TYPE": "Listed Building",
+                "CATEGORY": "A",
+                "DESIGNATED": "1970-01-01",
+                "LOCAL_AUTH": "City of Edinburgh",
+                "LINK": "https://portal.historicenvironment.scot/designation/LB12345",
+                "X": 325700.0,
+                "Y": 673600.0,
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [325700.0, 673600.0],
+            },
+        },
+    ],
+}
+
+
 @pytest.fixture
 def mock_registry():
     """Create a mock SourceRegistry with canned responses."""
@@ -369,6 +511,24 @@ def mock_registry():
             "capabilities": ["text_search"],
             "status": "available",
             "note": "Scraper-based — best-effort access",
+        },
+        {
+            "id": "scotland",
+            "name": "Historic Environment Scotland",
+            "organisation": "Historic Environment Scotland",
+            "coverage": "Scotland",
+            "api_type": "arcgis_map_service",
+            "capabilities": ["spatial_query", "text_search", "attribute_filter"],
+            "designation_types": [
+                "listed_building",
+                "scheduled_monument",
+                "garden_designed_landscape",
+                "battlefield",
+                "world_heritage_site",
+                "conservation_area",
+                "historic_marine_protected_area",
+            ],
+            "status": "available",
         },
     ]
 
@@ -458,6 +618,23 @@ def mock_registry():
         return_value=PaginatedResult(
             features=SAMPLE_GATEWAY_FEATURES,
             total_count=2,
+            has_more=False,
+        )
+    )
+
+    # Scotland tools
+    registry.search_scotland = AsyncMock(
+        return_value=PaginatedResult(
+            features=SAMPLE_SCOTLAND_NRHE_FEATURES,
+            total_count=2,
+            has_more=False,
+        )
+    )
+    registry.get_scotland_record = AsyncMock(return_value=SAMPLE_SCOTLAND_NRHE_FEATURES[0])
+    registry.search_scotland_designations = AsyncMock(
+        return_value=PaginatedResult(
+            features=SAMPLE_SCOTLAND_DESIGNATION_FEATURES,
+            total_count=1,
             has_more=False,
         )
     )

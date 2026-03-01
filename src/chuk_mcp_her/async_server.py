@@ -18,6 +18,7 @@ from .tools import (
     register_gateway_tools,
     register_heritage_at_risk_tools,
     register_nhle_tools,
+    register_scotland_tools,
 )
 
 mcp = ChukMCPServer(ServerConfig.NAME)
@@ -31,4 +32,5 @@ register_conservation_area_tools(mcp, registry)
 register_heritage_at_risk_tools(mcp, registry)
 register_gateway_tools(mcp, registry)
 register_crossref_tools(mcp, registry)
+register_scotland_tools(mcp, registry)
 register_export_tools(mcp, registry)
