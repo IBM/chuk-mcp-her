@@ -12,14 +12,37 @@ from chuk_mcp_her.core.adapters.base import PaginatedResult
 
 
 class MockMCPServer:
-    """Minimal MCP server mock that captures tools registered via @mcp.tool."""
+    """Minimal MCP server mock that captures tools registered via @mcp.tool or view_tool."""
 
     def __init__(self) -> None:
         self._tools: dict[str, Any] = {}
 
-    def tool(self, fn: Any) -> Any:
-        self._tools[fn.__name__] = fn
-        return fn
+    def tool(self, fn: Any = None, **kwargs: Any) -> Any:
+        if fn is not None and callable(fn):
+            # Direct decorator: @mcp.tool
+            self._tools[fn.__name__] = fn
+            return fn
+        else:
+            # Called with kwargs: mcp.tool(name=..., ...)(fn)
+            tool_name = kwargs.get("name")
+
+            def decorator(f: Any) -> Any:
+                name = tool_name or f.__name__
+                self._tools[name] = f
+                return f
+
+            return decorator
+
+    def view_tool(self, **kwargs: Any) -> Any:
+        """Support ChukMCPServer.view_tool(**vt_kwargs)(wrapper) pattern."""
+        tool_name = kwargs.get("name")
+
+        def decorator(f: Any) -> Any:
+            name = tool_name or f.__name__
+            self._tools[name] = f
+            return f
+
+        return decorator
 
     def get_tool(self, name: str) -> Any:
         return self._tools[name]

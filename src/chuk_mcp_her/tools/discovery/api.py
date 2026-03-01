@@ -296,6 +296,16 @@ def register_discovery_tools(mcp: object, registry: object) -> None:
                     category="export",
                     description="Export for LiDAR cross-referencing",
                 ),
+                ToolInfo(
+                    name="her_map",
+                    category="map",
+                    description="Multi-source heritage map with colour-coded layers",
+                ),
+                ToolInfo(
+                    name="her_crossref_map",
+                    category="map",
+                    description="Colour-coded cross-reference map (match/near/novel/known)",
+                ),
             ]
 
             jurisdictions = sorted(

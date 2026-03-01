@@ -127,7 +127,7 @@ All tools accept an optional `output_mode` parameter (`"json"` default, or `"tex
 | `her_search_scotland_designations` | Scotland | Search Scottish designated heritage assets | Active |
 | `her_cross_reference` | Cross-Ref | Cross-reference candidates against known assets | Active |
 | `her_enrich_gateway` | Cross-Ref | Resolve Gateway record coordinates for cross-referencing | Active |
-| `her_nearby` | Cross-Ref | Find heritage assets near a point | Active |
+| `her_nearby` | Cross-Ref | Find NHLE heritage assets near a point (England only) | Active |
 | `her_export_geojson` | Export | Export results as GeoJSON FeatureCollection | Active |
 | `her_export_for_lidar` | Export | Export known sites for LiDAR cross-referencing | Active |
 
@@ -309,6 +309,8 @@ python gateway_search_demo.py          # Heritage Gateway local HER search
 python cross_reference_demo.py         # cross-reference candidates (with AIM)
 python enrichment_pipeline_demo.py     # Gateway enrichment + cross-reference
 python blackwater_estuary_scenario.py  # multi-source scenario
+python scotland_search_demo.py         # Scottish NRHE search (Canmore)
+python scotland_designations_demo.py   # Scottish designated heritage assets
 ```
 
 | Script | Network | Tools Demonstrated |
@@ -325,6 +327,8 @@ python blackwater_estuary_scenario.py  # multi-source scenario
 | `cross_reference_demo.py` | Yes | `her_cross_reference` (with `include_aim`) |
 | `enrichment_pipeline_demo.py` | Yes | `her_enrich_gateway`, `her_search_heritage_gateway`, `her_cross_reference`, `her_count_features` |
 | `blackwater_estuary_scenario.py` | Yes | Multi-source scenario using NHLE, AIM, Conservation Areas, Heritage at Risk |
+| `scotland_search_demo.py` | Yes | `her_search_scotland`, `her_get_scotland_record` |
+| `scotland_designations_demo.py` | Yes | `her_search_scotland_designations`, `her_search_scotland` |
 
 ## Architecture
 

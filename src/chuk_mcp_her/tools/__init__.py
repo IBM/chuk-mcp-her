@@ -7,6 +7,7 @@ from .discovery.api import register_discovery_tools
 from .export.api import register_export_tools
 from .gateway.api import register_gateway_tools
 from .heritage_at_risk.api import register_heritage_at_risk_tools
+from .map.api import register_map_tools
 from .nhle.api import register_nhle_tools
 from .scotland.api import register_scotland_tools
 
@@ -18,6 +19,7 @@ __all__ = [
     "register_export_tools",
     "register_gateway_tools",
     "register_heritage_at_risk_tools",
+    "register_map_tools",
     "register_nhle_tools",
     "register_scotland_tools",
 ]

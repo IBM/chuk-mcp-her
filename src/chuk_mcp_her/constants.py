@@ -22,7 +22,7 @@ class ServerConfig(str, Enum):
     DESCRIPTION = "Historic Environment Records"
 
 
-TOOL_COUNT = 26
+TOOL_COUNT = 28
 
 
 class EnvVar:

@@ -369,6 +369,8 @@ Key differences from FeatureServer adapters (NHLE, AIM):
 - **MapServer limitations**: no `resultOffset` (no pagination), no `returnCountOnly`
   (count uses result count heuristic instead)
 - **Two clients**: separate `ArcGISClient` instances for NRHE and Designations
+- **Parallel designation queries**: `search_designations()` queries up to 7 layers
+  concurrently via `asyncio.gather()`, matching the NHLE multi-layer pattern
 - **Coordinate fallback**: tries geometry coordinates first, falls back to
   XCOORD/YCOORD properties if geometry is absent
 

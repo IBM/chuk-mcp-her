@@ -34,7 +34,7 @@ class TestDiscoveryTools:
         assert "server" in parsed
         assert parsed["server"] == "chuk-mcp-her"
         assert parsed["version"] == "0.3.0"
-        assert parsed["tool_count"] == 26
+        assert parsed["tool_count"] == 28
         assert "sources" in parsed
         assert "nhle" in parsed["sources"]
 

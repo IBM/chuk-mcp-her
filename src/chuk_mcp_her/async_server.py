@@ -17,6 +17,7 @@ from .tools import (
     register_export_tools,
     register_gateway_tools,
     register_heritage_at_risk_tools,
+    register_map_tools,
     register_nhle_tools,
     register_scotland_tools,
 )
@@ -33,4 +34,5 @@ register_heritage_at_risk_tools(mcp, registry)
 register_gateway_tools(mcp, registry)
 register_crossref_tools(mcp, registry)
 register_scotland_tools(mcp, registry)
+register_map_tools(mcp, registry)
 register_export_tools(mcp, registry)

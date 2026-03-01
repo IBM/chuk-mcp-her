@@ -694,7 +694,9 @@ for O(n+m) amortised nearest-neighbour lookup.
 
 #### `her_nearby`
 
-Find heritage assets near a single point.
+Find NHLE heritage assets near a single point (England only).
+
+> **Scope**: searches NHLE only. For Scottish sites call `her_search_scotland` with `lat`/`lon`/`radius_m`. For aerial features call `her_search_aerial` with the same parameters.
 
 **Parameters:**
 
@@ -1175,6 +1177,8 @@ Protection of Wrecks Act 1973.
 | `cross_reference_demo.py` | `her_cross_reference` (with `include_aim`) | Yes |
 | `enrichment_pipeline_demo.py` | `her_enrich_gateway`, `her_search_heritage_gateway`, `her_cross_reference`, `her_count_features` | Yes |
 | `blackwater_estuary_scenario.py` | Multi-source scenario using NHLE, AIM, Conservation Areas, Heritage at Risk | Yes |
+| `scotland_search_demo.py` | `her_search_scotland`, `her_get_scotland_record` | Yes |
+| `scotland_designations_demo.py` | `her_search_scotland_designations`, `her_search_scotland` | Yes |
 
 ---
 
