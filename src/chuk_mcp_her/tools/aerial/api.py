@@ -54,14 +54,19 @@ def register_aerial_tools(mcp: object, registry: object) -> None:
             Matching aerial mapping features with monument type, period, evidence
 
         Tips for LLMs:
-            Use monument_type and period as uppercase keywords.
-            Combine with bbox or lat/lon for spatial queries.
+            Use monument_type and period as uppercase keywords matching
+            the AIM vocabulary. Key monument types: "SALTERN MOUND" or
+            "RED HILL" for salt-production mounds, "ENCLOSURE" for
+            prehistoric/Roman enclosures, "RING DITCH" for barrow ditches,
+            "EARTHWORK" for general earthworks, "FIELD SYSTEM" for
+            field boundaries. Periods: "IRON AGE", "ROMAN", "MEDIEVAL".
             These features are NOT in the NHLE — they complement
             her_search_monuments. For comprehensive area surveys, run
             all three sources: her_search_monuments (NHLE designated),
             her_search_aerial (AIM cropmarks/earthworks), and
             her_search_heritage_gateway (local HER undesignated sites),
             then merge and deduplicate the results.
+            Use her_map to display the combined results on a map.
         """
         try:
             # Coerce numeric params (MCP may pass strings)

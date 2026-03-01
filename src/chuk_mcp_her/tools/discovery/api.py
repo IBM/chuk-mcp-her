@@ -329,6 +329,17 @@ def register_discovery_tools(mcp: object, registry: object) -> None:
                     max_results_per_query=2000,
                     tool_count=len(tools),
                     llm_guidance=(
+                        "NAMED SITE TYPES — USE HER DATABASES, NOT TERRAIN TOOLS: "
+                        "For queries about specific archaeological or heritage site "
+                        "types (red hills, saltern mounds, barrows, henges, brochs, "
+                        "ringforts, enclosures, earthworks, cropmarks, castles, "
+                        "abbeys, industrial sites, findspots, etc.), ALWAYS query "
+                        "HER databases first — these sites are already catalogued. "
+                        "Red hills and salterns: her_search_aerial(monument_type="
+                        "'SALTERN MOUND') + her_search_heritage_gateway(what='red "
+                        "hill') + her_search_monuments for designated examples. "
+                        "DO NOT use terrain analysis, DEM, or LiDAR feature-"
+                        "detection tools for named heritage site types. "
                         "MULTI-SOURCE QUERIES: No single source has everything. "
                         "For comprehensive area surveys, ALWAYS search multiple "
                         "sources and merge results: "
@@ -350,7 +361,8 @@ def register_discovery_tools(mcp: object, registry: object) -> None:
                         "then her_cross_reference to deduplicate across sources. "
                         "Use her_search_conservation_areas for conservation areas "
                         "and her_search_heritage_at_risk for at-risk assets. "
-                        "Use count tools before fetching large result sets."
+                        "Use count tools before fetching large result sets. "
+                        "Use her_map to display results as an interactive map."
                     ),
                     message=f"{len(tools)} tools across {len(source_infos)} sources",
                 ),

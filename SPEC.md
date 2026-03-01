@@ -13,7 +13,7 @@ protected wrecks, and World Heritage Sites -- plus 320,000+ Scottish NRHE record
 and local HER data via Heritage Gateway web scraping. Provides tools for
 cross-referencing, nearby search, and export.
 
-- **26 tools** across 9 categories (3 discovery, 5 NHLE, 3 aerial, 3 conservation area, 3 heritage at risk, 1 gateway, 3 scotland, 3 cross-referencing, 2 export)
+- **28 tools** across 10 categories (3 discovery, 5 NHLE, 3 aerial, 3 conservation area, 3 heritage at risk, 1 gateway, 3 scotland, 3 cross-referencing, 2 export, 2 map)
 - **6 data sources**: NHLE, AIM, Conservation Areas, Heritage at Risk (all via ArcGIS FeatureServer), Heritage Gateway (web scraper), Scotland (ArcGIS MapServer)
 - **Spatial-first queries** via ArcGIS Feature Service with BNG/WGS84 support
 - **Async-first** -- tool entry points are async; httpx for all HTTP requests
@@ -1136,6 +1136,81 @@ cache_key = f"{source_id}/{sha256(sorted_params)[:16]}"
 
 ---
 
+### Map Tools
+
+Map tools return a structured `MapContent` view via the `chuk_view_schemas.chuk_mcp.map_tool` decorator. The result is wrapped in `{"structuredContent": {...}}` automatically and rendered as an interactive map in chuk-mcp-ui-compatible clients.
+
+#### `her_map`
+
+Visualise heritage assets from multiple sources as a multi-layer interactive map.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `bbox` | `str?` | — | WGS84 bbox `"min_lon,min_lat,max_lon,max_lat"` (alternative to lat/lon) |
+| `lat` | `float?` | — | Centre latitude in WGS84 |
+| `lon` | `float?` | — | Centre longitude in WGS84 |
+| `radius_m` | `float` | `1000.0` | Search radius in metres |
+| `sources` | `str?` | all | Comma-separated source IDs: `nhle`, `aim`, `conservation_area`, `heritage_at_risk`, `scotland` |
+| `designation_type` | `str?` | — | Filter NHLE layer to one designation type |
+| `basemap` | `str` | `"osm"` | Background tile layer: `osm`, `satellite`, `terrain`, `dark` |
+| `max_results` | `int` | `200` | Max results per source |
+
+**Response:** `{"structuredContent": MapContent}` with layers:
+
+| Layer ID | Label | Source | Colour |
+|----------|-------|--------|--------|
+| `nhle_listed_building` | Listed Buildings (NHLE) | NHLE | Blue `#2563eb` |
+| `nhle_scheduled_monument` | Scheduled Monuments (NHLE) | NHLE | Brown `#b45309` |
+| `nhle_park_and_garden` | Parks & Gardens (NHLE) | NHLE | Green `#16a34a` |
+| `nhle_battlefield` | Battlefields (NHLE) | NHLE | Red `#dc2626` |
+| `nhle_protected_wreck` | Protected Wrecks (NHLE) | NHLE | Dark Blue `#1d4ed8` |
+| `nhle_world_heritage_site` | World Heritage Sites (NHLE) | NHLE | Gold `#fbbf24` |
+| `aim` | Aerial Mapping (AIM) | AIM | Purple `#a78bfa` |
+| `conservation_area` | Conservation Areas | CA | Teal `#34d399` |
+| `heritage_at_risk` | Heritage at Risk | HAR | Red `#f87171` |
+| `scotland` | Scottish Sites (NRHE) | Scotland | Cyan `#22d3ee` |
+
+Each layer has clustering enabled (radius 40px), a popup template, and a `LayerStyle` with colour, fill colour, opacity, and radius. Only designation types present in the results produce layers.
+
+**Notes:**
+- Sources are queried in parallel via `asyncio.gather()`
+- Heritage Gateway is excluded (no spatial API)
+- Provide `bbox` OR `lat`+`lon` (at least one spatial parameter required)
+
+---
+
+#### `her_crossref_map`
+
+Visualise LiDAR cross-reference results as a colour-coded heritage map.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `candidates` | `str` | `"[]"` | JSON array of `{"easting": x, "northing": y, "name": "..."}` dicts (BNG) |
+| `match_radius_m` | `float` | `50.0` | Distance threshold for "match" classification |
+| `near_radius_m` | `float` | `200.0` | Distance threshold for "near" classification |
+| `designation_types` | `str?` | — | Comma-separated NHLE designation types to match against |
+| `include_aim` | `bool` | `false` | Include AIM aerial mapping in known asset set |
+| `basemap` | `str` | `"osm"` | Background tile layer: `osm`, `satellite`, `terrain`, `dark` |
+
+**Response:** `{"structuredContent": MapContent}` with four classification layers:
+
+| Layer ID | Label | Colour | Meaning |
+|----------|-------|--------|---------|
+| `known_assets` | Known Heritage Assets | Grey `#94a3b8` | NHLE (and optionally AIM) assets in area |
+| `novel` | Novel Candidates (N) | Red `#f87171` | No known asset within `near_radius_m` — potential new discovery |
+| `near` | Near Known Assets (N) | Amber `#fb923c` | Within `near_radius_m` but not a match |
+| `match` | Matches (N) | Green `#4ade80` | Within `match_radius_m` of a known asset |
+
+Known assets layer is rendered first (below candidates). Layers are omitted if empty. Empty `candidates` returns an unlayered map centred on Great Britain.
+
+**Classification logic** matches `her_cross_reference` exactly — pair these two tools to get both the visual and the text-format result table.
+
+---
+
 ## Integration Points
 
 ### chuk-mcp-lidar
@@ -1150,6 +1225,10 @@ Protected wreck designations in the NHLE can be cross-referenced with wreck
 records in chuk-mcp-maritime-archives. The `protected_wreck` designation type
 in NHLE corresponds to wrecks that have been given legal protection under the
 Protection of Wrecks Act 1973.
+
+### chuk-mcp-ui
+
+`her_map` and `her_crossref_map` use the `@map_tool` decorator from `chuk_view_schemas.chuk_mcp` (part of the `chuk-view-schemas` package). The decorator wraps results in `{"structuredContent": MapContent}` for rendering in chuk-mcp-ui-compatible clients. The `MockMCPServer` in tests implements the `view_tool()` method to support this registration pattern.
 
 ### GIS Tools
 

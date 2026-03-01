@@ -9,15 +9,16 @@
 
 ## Features
 
-This MCP server provides structured access to Historic Environment Records through **26 tools** across **9 categories**, querying **6 data sources** via live ArcGIS REST APIs and Heritage Gateway web scraping.
+This MCP server provides structured access to Historic Environment Records through **28 tools** across **10 categories**, querying **6 data sources** via live ArcGIS REST APIs and Heritage Gateway web scraping.
 
 **Key capabilities:**
 - **Source registry pattern** -- pluggable adapters for NHLE, AIM, Conservation Areas, Heritage at Risk, Heritage Gateway, and Scotland (HES) with unified query interface
 - **England + Scotland coverage** -- English heritage via Historic England, Scottish heritage via Historic Environment Scotland (320,000+ NRHE records + designated assets)
 - **Spatial-first queries** -- bounding box, point+radius, and area searches via ArcGIS Feature/Map Services
 - **BNG/WGS84 coordinate support** -- automatic conversion between British National Grid (EPSG:27700) and WGS84 (EPSG:4326)
+- **Interactive map views** -- `her_map` and `her_crossref_map` return structured `MapContent` for rendering in chuk-mcp-ui-compatible clients
 - **All tools return fully-typed Pydantic v2 models** for type safety, validation, and excellent IDE support
-- **All tools support `output_mode="text"`** for human-readable output alongside the default JSON
+- **Most tools support `output_mode="text"`** for human-readable output alongside the default JSON
 
 ### 1. Server Discovery (`her_status`, `her_list_sources`, `her_capabilities`)
 
@@ -98,6 +99,14 @@ Export and format results:
   - Gateway sites with monument_type and period
 - Optional AIM integration (`include_aim`) and Gateway sites (`gateway_sites`) for LiDAR export
 
+### 10. Map Visualisation (`her_map`, `her_crossref_map`)
+
+Interactive heritage maps rendered as structured `MapContent` for chuk-mcp-ui clients:
+- **`her_map`** -- queries up to five sources in parallel (NHLE, AIM, Conservation Areas, Heritage at Risk, Scotland) and renders each as a distinctly colour-coded layer; NHLE results are split by designation type for visual separation
+- **`her_crossref_map`** -- runs the same analysis as `her_cross_reference` then renders four colour-coded layers: green (match), amber (near), red (novel/potential new discovery), grey (known assets)
+- Marker clustering, popup templates, and layer toggle controls
+- Accepts WGS84 bbox or lat/lon/radius_m; BNG candidates for crossref map
+
 ## Tool Reference
 
 All tools accept an optional `output_mode` parameter (`"json"` default, or `"text"` for human-readable output).
@@ -130,6 +139,8 @@ All tools accept an optional `output_mode` parameter (`"json"` default, or `"tex
 | `her_nearby` | Cross-Ref | Find NHLE heritage assets near a point (England only) | Active |
 | `her_export_geojson` | Export | Export results as GeoJSON FeatureCollection | Active |
 | `her_export_for_lidar` | Export | Export known sites for LiDAR cross-referencing | Active |
+| `her_map` | Map | Multi-source heritage map with colour-coded layers | Active |
+| `her_crossref_map` | Map | Colour-coded cross-reference map (match/near/novel/known) | Active |
 
 ## Data Sources
 
@@ -274,6 +285,8 @@ Once configured, you can ask questions like:
 - "What heritage assets are within 500m of the Tower of London?"
 - "Export all scheduled monuments in the Maldon area as GeoJSON"
 - "Cross-reference these LiDAR survey points against known heritage assets"
+- "Show all heritage assets within 2km of Stonehenge on a map"
+- "Map my LiDAR candidates against known scheduled monuments and show which are potential new discoveries"
 - "Search for protected wrecks along the English coast"
 - "Find registered parks and gardens near Bath"
 - "Search for all red hills along the north bank of the Blackwater estuary between Heybridge Basin and Tollesbury"
@@ -342,7 +355,7 @@ python scotland_designations_demo.py   # Scottish designated heritage assets
                   | discovery/ nhle/ aerial/      |
                   | conservation_area/ scotland/  |
                   | heritage_at_risk/ gateway/    |
-                  | crossref/ export/             |
+                  | crossref/ export/ map/        |
                   +-------------------------------+
                               |
                               | validate params, format response
@@ -376,7 +389,8 @@ Built on top of chuk-mcp-server, this server uses:
 - **BNG/WGS84 Conversion**: Helmert transformation with optional pyproj for sub-metre accuracy
 - **Filesystem Cache**: TTL-based per-source caching to reduce API load
 - **Rate Limiting**: Per-client rate limiting with exponential backoff on 429/5xx
-- **Dual Output**: All 26 tools support `output_mode="text"` for human-readable responses
+- **chuk-view-schemas**: Map tools return `MapContent` structured views via `chuk_view_schemas.chuk_mcp.map_tool` decorator
+- **Dual Output**: Most tools support `output_mode="text"` for human-readable responses; map tools return structured `MapContent`
 - **Error Messages**: All error strings from `ErrorMessages` constants -- no hardcoded strings
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for design principles and data flow diagrams.

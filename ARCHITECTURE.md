@@ -70,9 +70,9 @@ This server only reads from external heritage data sources. It does not create,
 update, or delete any records. All data flows inward from ArcGIS Feature Services
 and web sources. The only writes are to the local filesystem cache.
 
-### 10. Test Coverage -- 708 Tests
+### 10. Test Coverage -- 745 Tests
 
-All modules maintain 90%+ branch coverage (708 tests across 16 test modules). Tests use `pytest-asyncio` and mock at the HTTP boundary
+All modules maintain 90%+ branch coverage (745 tests across 17 test modules). Tests use `pytest-asyncio` and mock at the HTTP boundary
 (`ArcGISClient.query()`, `ArcGISClient.count()`, `GatewayClient` methods), not at
 the registry level, to exercise the full data flow from tool to adapter to client.
 No live API calls are made during testing.
@@ -97,6 +97,7 @@ No live API calls are made during testing.
                   | tools/scotland/          (3)  |
                   | tools/crossref/          (3)  |
                   | tools/export/            (2)  |
+                  | tools/map/               (2)  |
                   +-------------------------------+
                               |
                               | validate params, format response
@@ -169,6 +170,7 @@ server.py                           # CLI entry point (sync)
   |     +-- tools/crossref/api.py             # her_cross_reference, her_nearby, her_enrich_gateway
   |     |     +-- core/spatial_index.py      # Grid-based spatial index (O(n+m) nearest-neighbour)
   |     +-- tools/export/api.py               # her_export_geojson, her_export_for_lidar
+  |     +-- tools/map/api.py                  # her_map, her_crossref_map (chuk-view-schemas MapContent)
   |     +-- core/source_registry.py           # Central orchestrator, adapter dispatch
   |           +-- core/adapters/nhle.py              # NHLE adapter (queries ArcGIS)
   |           |     +-- core/arcgis_client.py        # Async HTTP client (rate-limited)
@@ -242,6 +244,9 @@ src/chuk_mcp_her/
     |   +-- __init__.py
     |   +-- api.py
     +-- export/            # her_export_geojson, her_export_for_lidar
+    |   +-- __init__.py
+    |   +-- api.py
+    +-- map/               # her_map, her_crossref_map (chuk-view-schemas views)
         +-- __init__.py
         +-- api.py
 ```
@@ -545,11 +550,33 @@ data sources. This guides LLM agents to combine queries automatically:
 This pattern ensures that agents search all relevant sources for comprehensive
 coverage, rather than stopping after querying a single source.
 
+### Map View Tools (chuk-view-schemas)
+
+`her_map` and `her_crossref_map` use the `@map_tool` decorator from
+`chuk_view_schemas.chuk_mcp` rather than `@mcp.tool`. The decorator:
+
+1. Wraps the async function in a `wrapper` that serialises the returned `MapContent`
+   via `model_dump(by_alias=True, exclude_none=True)` and returns `{"structuredContent": {...}}`
+2. Registers `wrapper` with the MCP server via `mcp_server.view_tool()` (ChukMCPServer ≥ 0.24)
+   or falls back to `mcp_server.tool(name=..., meta={"ui": {...}})` for older servers
+3. Returns the original unwrapped function (so it can be tested directly)
+
+The `MockMCPServer` in `tests/conftest.py` implements `view_tool(**kwargs)` to support
+this registration pattern. Map tools are not tested via `json.loads(result)` — they
+return a `dict` with a `"structuredContent"` key.
+
+NHLE features are split by `designation_type` into separate layers using
+`collections.defaultdict`, giving each type a distinct `LayerStyle` colour.
+The crossref map reuses `GridSpatialIndex` from `core/spatial_index.py` for the
+same O(n+m) candidate classification as `her_cross_reference`.
+
 ### Dual Output Mode
 
-All tools accept an `output_mode` parameter (`"json"` or `"text"`). The
+Most tools accept an `output_mode` parameter (`"json"` or `"text"`). The
 `format_response()` helper checks for a `to_text()` method on the response model.
 In JSON mode, `model_dump_json(indent=2, exclude_none=True)` produces clean output.
+Map tools (`her_map`, `her_crossref_map`) do not use `output_mode` — they always
+return structured `MapContent`.
 In text mode, each response model's `to_text()` returns a human-readable summary.
 
 ### Error Handling
