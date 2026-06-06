@@ -3,7 +3,7 @@
 # Multi-stage build for optimal image size
 
 # Build stage
-FROM python:3.11-slim as builder
+FROM python:3.14-slim as builder
 
 WORKDIR /app
 
@@ -23,7 +23,7 @@ COPY src ./src
 RUN uv pip install --system --no-cache .
 
 # Runtime stage
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 
