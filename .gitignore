@@ -58,4 +58,3 @@ cache/
 # Build
 *.log
 *.tmp
-uv.lock

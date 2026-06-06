@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from ...constants import SOURCE_METADATA
+from ...constants import ErrorMessages, SOURCE_METADATA
 from ..arcgis_client import ArcGISClient
 from ..cache import ResponseCache
 from ..coordinates import bng_to_wgs84, wgs84_to_bng
@@ -112,7 +112,7 @@ class ConservationAreaAdapter(BaseSourceAdapter):
     async def get_by_id(self, record_id: str) -> dict[str, Any] | None:
         """Get a single conservation area by UID."""
         uid = record_id.replace("ca:", "")
-        where = f"UID = {uid}"
+        where = f"UID = {int(uid)}"
 
         result = await self._client.query(
             layer_id=0,
@@ -208,7 +208,7 @@ class ConservationAreaAdapter(BaseSourceAdapter):
         result: dict[str, Any] = {
             "record_id": f"ca:{uid}",
             "uid": uid,
-            "name": props.get("NAME") or "Unknown conservation area",
+            "name": props.get("NAME") or ErrorMessages.UNKNOWN_CONSERVATION_AREA,
             "source": "conservation_area",
             "lpa": props.get("LPA"),
             "designation_date": props.get("DATE_OF_DE"),

@@ -82,8 +82,14 @@ class ArcGISClient:
         return_count_only: bool = False,
         return_geometry: bool = True,
         order_by_fields: str | None = None,
+        supports_pagination: bool = True,
     ) -> dict[str, Any]:
         """Execute an ArcGIS Feature Service query.
+
+        Args:
+            supports_pagination: Set to False for MapServer endpoints that
+                do not support resultOffset. When False, resultOffset is
+                omitted from the request parameters.
 
         Returns the parsed JSON response from ArcGIS.
         """
@@ -114,12 +120,14 @@ class ArcGISClient:
             "where": where,
             "outFields": out_fields,
             "outSR": out_sr,
-            "resultOffset": result_offset,
             "resultRecordCount": result_record_count,
             "returnCountOnly": str(return_count_only).lower(),
             "returnGeometry": str(return_geometry).lower(),
             "f": "json" if return_count_only else "geojson",
         }
+
+        if supports_pagination:
+            params["resultOffset"] = result_offset
 
         if geometry is not None:
             params["geometry"] = str(geometry).replace("'", '"')

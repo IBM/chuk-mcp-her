@@ -6,6 +6,7 @@ from .conservation_area import ConservationAreaAdapter
 from .heritage_at_risk import HeritageAtRiskAdapter
 from .heritage_gateway import HeritageGatewayAdapter
 from .nhle import NHLEAdapter
+from .scotland import ScotlandAdapter
 
 __all__ = [
     "AIMAdapter",
@@ -15,5 +16,6 @@ __all__ = [
     "HeritageGatewayAdapter",
     "NHLEAdapter",
     "PaginatedResult",
+    "ScotlandAdapter",
     "SourceCapabilities",
 ]

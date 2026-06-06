@@ -553,6 +553,100 @@ class GatewayEnrichResponse(BaseModel):
 
 
 # ============================================================================
+# Scotland (NRHE + Designations)
+# ============================================================================
+
+
+class ScotlandRecordInfo(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    record_id: str | None = None
+    canmore_id: str | None = None
+    site_number: str | None = None
+    name: str | None = None
+    alt_name: str | None = None
+    broad_class: str | None = None
+    site_type: str | None = None
+    form: str | None = None
+    county: str | None = None
+    council: str | None = None
+    parish: str | None = None
+    grid_reference: str | None = None
+    easting: float | None = None
+    northing: float | None = None
+    lat: float | None = None
+    lon: float | None = None
+    url: str | None = None
+
+
+class ScotlandSearchResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    query: dict[str, Any] | None = None
+    source: str = "scotland"
+    count: int
+    total_available: int | None = None
+    records: list[ScotlandRecordInfo]
+    has_more: bool = False
+    message: str = ""
+
+    def to_text(self) -> str:
+        lines = [self.message, ""]
+        for r in self.records:
+            site_type = f" [{r.site_type}]" if r.site_type else ""
+            lines.append(f"  {r.record_id}: {r.name}{site_type}")
+            if r.broad_class:
+                lines.append(f"    Class: {r.broad_class}")
+            if r.lat is not None:
+                lines.append(f"    Location: {r.lat}, {r.lon}")
+        if self.has_more:
+            lines.append(f"\n  Showing {self.count}. More results may be available.")
+        return "\n".join(lines)
+
+
+class ScotlandDesignationInfo(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    record_id: str | None = None
+    designation_reference: str | None = None
+    name: str | None = None
+    designation_type: str | None = None
+    category: str | None = None
+    designated_date: str | None = None
+    local_authority: str | None = None
+    easting: float | None = None
+    northing: float | None = None
+    lat: float | None = None
+    lon: float | None = None
+    url: str | None = None
+
+
+class ScotlandDesignationSearchResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    query: dict[str, Any] | None = None
+    source: str = "scotland"
+    count: int
+    total_available: int | None = None
+    designations: list[ScotlandDesignationInfo]
+    has_more: bool = False
+    message: str = ""
+
+    def to_text(self) -> str:
+        lines = [self.message, ""]
+        for d in self.designations:
+            cat = f" ({d.category})" if d.category else ""
+            lines.append(f"  {d.record_id}: {d.name} [{d.designation_type}]{cat}")
+            if d.local_authority:
+                lines.append(f"    Authority: {d.local_authority}")
+            if d.lat is not None:
+                lines.append(f"    Location: {d.lat}, {d.lon}")
+        if self.has_more:
+            lines.append(f"\n  Showing {self.count}. More results may be available.")
+        return "\n".join(lines)
+
+
+# ============================================================================
 # Cross-Referencing
 # ============================================================================
 

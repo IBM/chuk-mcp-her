@@ -36,8 +36,10 @@ templates, and success message templates are all constants -- never inline strin
 The `SourceRegistry` provides a unified query interface across all data sources.
 Tool functions never interact with adapters directly -- they call registry methods
 which route to the appropriate adapter. This means adding a new data source
-(e.g. Scotland's Canmore) requires only a new adapter class, not changes to
-any tool code.
+requires only a new adapter class, not changes to any tool code. The Scotland
+adapter demonstrates this: `ScotlandAdapter` was added with two ArcGIS MapServer
+clients, registered in the `SourceRegistry`, and exposed via 3 new tools without
+modifying any existing tool code.
 
 ### 6. Live API Queries
 
@@ -68,10 +70,9 @@ This server only reads from external heritage data sources. It does not create,
 update, or delete any records. All data flows inward from ArcGIS Feature Services
 and web sources. The only writes are to the local filesystem cache.
 
-### 10. Test Coverage -- 667 Tests, 97% Coverage
+### 10. Test Coverage -- 745 Tests
 
-All modules maintain 90%+ branch coverage (667 tests across 15 test modules, 97%
-overall coverage). Tests use `pytest-asyncio` and mock at the HTTP boundary
+All modules maintain 90%+ branch coverage (745 tests across 17 test modules). Tests use `pytest-asyncio` and mock at the HTTP boundary
 (`ArcGISClient.query()`, `ArcGISClient.count()`, `GatewayClient` methods), not at
 the registry level, to exercise the full data flow from tool to adapter to client.
 No live API calls are made during testing.
@@ -93,8 +94,10 @@ No live API calls are made during testing.
                   | tools/conservation_area/ (3)  |
                   | tools/heritage_at_risk/  (3)  |
                   | tools/gateway/           (1)  |
-                  | tools/crossref/          (2)  |
+                  | tools/scotland/          (3)  |
+                  | tools/crossref/          (3)  |
                   | tools/export/            (2)  |
+                  | tools/map/               (2)  |
                   +-------------------------------+
                               |
                               | validate params, format response
@@ -108,31 +111,33 @@ No live API calls are made during testing.
                   |  - search_conservation_areas()|
                   |  - search_heritage_at_risk()  |
                   |  - search_heritage_gateway()  |
+                  |  - search_scotland()          |
+                  |  - search_scotland_desig..()  |
                   |  - count_features()           |
                   |  - nearby()                   |
                   |  - enrich_gateway_records()   |
                   +-------------------------------+
-                    |     |     |     |     |
-            NHLEAdapter   |  CA     HAR    |
-              AIMAdapter  |  Adapter Adapter|
-                          |               GatewayAdapter
-                  v       v       v             v
-          +------------------+        +------------------+
-          |  ArcGIS Client   |        |  Gateway Client  |
-          | - query()        |        | - search()       |
-          | - count()        |        | - get_record()   |
-          | - query_all()    |        | - BeautifulSoup  |
-          +------------------+        +------------------+
-                  |                           |
-                  | httpx AsyncClient         | httpx AsyncClient
-                  v                           v
-          +---------------------+    +-------------------+
-          | HE ArcGIS Services  |    | Heritage Gateway  |
-          | NHLE (layers 0-10)  |    | www.heritage      |
-          | AIM (layer 1)       |    |   gateway.org.uk  |
-          | Conservation Areas  |    +-------------------+
-          | Heritage at Risk    |
-          +---------------------+
+                  |     |     |     |     |     |
+          NHLEAdapter   |  CA     HAR    |  ScotlandAdapter
+            AIMAdapter  |  Adapt  Adapt  |  (2 MapServer clients)
+                        |               GatewayAdapter
+                v       v       v             v           v
+        +------------------+  +------------------+  +------------------+
+        |  ArcGIS Client   |  |  Gateway Client  |  |  ArcGIS Client   |
+        | - query()        |  | - search()       |  | (MapServer mode) |
+        | - count()        |  | - get_record()   |  | - no pagination  |
+        | - query_all()    |  | - BeautifulSoup  |  | - no countOnly   |
+        +------------------+  +------------------+  +------------------+
+                |                      |                      |
+                | httpx                | httpx                | httpx
+                v                      v                      v
+        +------------------+  +------------------+  +------------------+
+        | HE ArcGIS Svc    |  | Heritage Gateway |  | inspire.hes.scot |
+        | NHLE (layers 0-10|  | www.heritage     |  | Canmore Points   |
+        | AIM (layer 1)    |  |   gateway.org.uk |  | HES Designations |
+        | Conservation     |  +------------------+  | (layers 0-7)     |
+        | Heritage at Risk |                         +------------------+
+        +------------------+
                   |
           +------------------------------------------+
           | ResponseCache (filesystem, TTL-based)     |
@@ -160,9 +165,12 @@ server.py                           # CLI entry point (sync)
   |     |                                     #   her_count_heritage_at_risk,
   |     |                                     #   her_get_heritage_at_risk
   |     +-- tools/gateway/api.py              # her_search_heritage_gateway
+  |     +-- tools/scotland/api.py            # her_search_scotland, her_get_scotland_record,
+  |     |                                     #   her_search_scotland_designations
   |     +-- tools/crossref/api.py             # her_cross_reference, her_nearby, her_enrich_gateway
   |     |     +-- core/spatial_index.py      # Grid-based spatial index (O(n+m) nearest-neighbour)
   |     +-- tools/export/api.py               # her_export_geojson, her_export_for_lidar
+  |     +-- tools/map/api.py                  # her_map, her_crossref_map (chuk-view-schemas MapContent)
   |     +-- core/source_registry.py           # Central orchestrator, adapter dispatch
   |           +-- core/adapters/nhle.py              # NHLE adapter (queries ArcGIS)
   |           |     +-- core/arcgis_client.py        # Async HTTP client (rate-limited)
@@ -172,7 +180,8 @@ server.py                           # CLI entry point (sync)
   |           +-- core/adapters/conservation_area.py # Conservation Areas (queries ArcGIS)
   |           +-- core/adapters/heritage_at_risk.py  # Heritage at Risk (queries ArcGIS)
   |           +-- core/adapters/heritage_gateway.py  # Heritage Gateway (web scraper)
-  |                 +-- core/gateway_client.py       # httpx + BeautifulSoup scraper
+  |           |     +-- core/gateway_client.py       # httpx + BeautifulSoup scraper
+  |           +-- core/adapters/scotland.py          # Scotland adapter (2 MapServer clients)
 
 models/responses.py             # Response envelopes (extra="forbid")
 constants.py                    # Enums, constants, messages
@@ -204,6 +213,7 @@ src/chuk_mcp_her/
 |       +-- conservation_area.py   # Conservation Areas adapter (queries ArcGIS)
 |       +-- heritage_at_risk.py    # Heritage at Risk adapter (queries ArcGIS)
 |       +-- heritage_gateway.py    # Heritage Gateway adapter (web scraper)
+|       +-- scotland.py           # Scotland adapter (HES MapServer)
 +-- models/
 |   +-- __init__.py
 |   +-- responses.py       # Response envelopes (extra="forbid", to_text())
@@ -227,10 +237,16 @@ src/chuk_mcp_her/
     +-- gateway/           # her_search_heritage_gateway
     |   +-- __init__.py
     |   +-- api.py
+    +-- scotland/          # her_search_scotland, her_get_scotland_record,
+    |   +-- __init__.py    #   her_search_scotland_designations
+    |   +-- api.py
     +-- crossref/          # her_cross_reference, her_nearby
     |   +-- __init__.py
     |   +-- api.py
     +-- export/            # her_export_geojson, her_export_for_lidar
+    |   +-- __init__.py
+    |   +-- api.py
+    +-- map/               # her_map, her_crossref_map (chuk-view-schemas views)
         +-- __init__.py
         +-- api.py
 ```
@@ -248,17 +264,18 @@ touches `sys.argv` or `os.environ` directly.
 ### `async_server.py`
 
 Creates the `ChukMCPServer` MCP instance, instantiates `SourceRegistry`, and registers
-all tool groups (8 categories, 23 tools). Each tool module receives the MCP instance
+all tool groups (9 categories, 26 tools). Each tool module receives the MCP instance
 and the shared `SourceRegistry`.
 
 ### `core/source_registry.py`
 
 The central orchestrator, analogous to `ArchiveManager` in chuk-mcp-maritime-archives.
 Manages:
-- **Adapter registry**: 5 source adapters (NHLE, AIM, Conservation Areas, Heritage at Risk, Heritage Gateway) keyed by `SourceId`
+- **Adapter registry**: 6 source adapters (NHLE, AIM, Conservation Areas, Heritage at Risk, Heritage Gateway, Scotland) keyed by `SourceId`
 - **Unified query interface**: `search_monuments()`, `search_listed_buildings()`,
   `search_designations()`, `count_features()`, `search_conservation_areas()`,
-  `search_heritage_at_risk()`, `search_heritage_gateway()`, `get_monument()`, `nearby()`
+  `search_heritage_at_risk()`, `search_heritage_gateway()`, `search_scotland()`,
+  `search_scotland_designations()`, `get_monument()`, `nearby()`
 - **Source listing**: `list_sources()` returns metadata for all registered sources
 - **Adapter dispatch**: routes queries to the appropriate adapter based on source ID
 
@@ -343,6 +360,24 @@ Web scraper adapter for the Heritage Gateway website, providing best-effort acce
 to 60+ local HERs. Uses `GatewayClient` for ASP.NET WebForms scraping with
 ViewState, form POST, and AJAX polling. Returns empty results gracefully when
 the Gateway is unavailable.
+
+### `core/adapters/scotland.py`
+
+Adapter for Historic Environment Scotland, querying two ArcGIS MapServer endpoints
+at `inspire.hes.scot`:
+- **Canmore Points** (NRHE): 320,000+ terrestrial and maritime archaeological records
+- **HES Designations**: 8 layers covering listed buildings, scheduled monuments,
+  gardens/designed landscapes, battlefields, world heritage sites, conservation areas,
+  and historic marine protected areas
+
+Key differences from FeatureServer adapters (NHLE, AIM):
+- **MapServer limitations**: no `resultOffset` (no pagination), no `returnCountOnly`
+  (count uses result count heuristic instead)
+- **Two clients**: separate `ArcGISClient` instances for NRHE and Designations
+- **Parallel designation queries**: `search_designations()` queries up to 7 layers
+  concurrently via `asyncio.gather()`, matching the NHLE multi-layer pattern
+- **Coordinate fallback**: tries geometry coordinates first, falls back to
+  XCOORD/YCOORD properties if geometry is absent
 
 ### `core/gateway_client.py`
 
@@ -515,11 +550,33 @@ data sources. This guides LLM agents to combine queries automatically:
 This pattern ensures that agents search all relevant sources for comprehensive
 coverage, rather than stopping after querying a single source.
 
+### Map View Tools (chuk-view-schemas)
+
+`her_map` and `her_crossref_map` use the `@map_tool` decorator from
+`chuk_view_schemas.chuk_mcp` rather than `@mcp.tool`. The decorator:
+
+1. Wraps the async function in a `wrapper` that serialises the returned `MapContent`
+   via `model_dump(by_alias=True, exclude_none=True)` and returns `{"structuredContent": {...}}`
+2. Registers `wrapper` with the MCP server via `mcp_server.view_tool()` (ChukMCPServer ≥ 0.24)
+   or falls back to `mcp_server.tool(name=..., meta={"ui": {...}})` for older servers
+3. Returns the original unwrapped function (so it can be tested directly)
+
+The `MockMCPServer` in `tests/conftest.py` implements `view_tool(**kwargs)` to support
+this registration pattern. Map tools are not tested via `json.loads(result)` — they
+return a `dict` with a `"structuredContent"` key.
+
+NHLE features are split by `designation_type` into separate layers using
+`collections.defaultdict`, giving each type a distinct `LayerStyle` colour.
+The crossref map reuses `GridSpatialIndex` from `core/spatial_index.py` for the
+same O(n+m) candidate classification as `her_cross_reference`.
+
 ### Dual Output Mode
 
-All tools accept an `output_mode` parameter (`"json"` or `"text"`). The
+Most tools accept an `output_mode` parameter (`"json"` or `"text"`). The
 `format_response()` helper checks for a `to_text()` method on the response model.
 In JSON mode, `model_dump_json(indent=2, exclude_none=True)` produces clean output.
+Map tools (`her_map`, `her_crossref_map`) do not use `output_mode` — they always
+return structured `MapContent`.
 In text mode, each response model's `to_text()` returns a human-readable summary.
 
 ### Error Handling
@@ -588,6 +645,7 @@ query parameters always produce the same cache key.
 | NHLE | 24 hours | Designations change infrequently |
 | AIM | 7 days | Aerial mapping data is very stable |
 | Heritage Gateway | 1 hour | Local HER data may update more often |
+| Scotland (NRHE + Designations) | 24 hours | Matches NHLE pattern |
 
 Cache behaviour:
 - **Cache-first reads**: every ArcGIS query checks the cache before making an HTTP request
@@ -601,7 +659,7 @@ Cache behaviour:
 ## Testing Strategy
 
 Tests use `pytest-asyncio` and mock at the HTTP boundary. No live API calls
-are made during testing. 667 tests across 15 test modules (97% overall coverage):
+are made during testing. 708 tests across 16 test modules:
 
 - **Unit tests**: `test_coordinates.py` (BNG/WGS84 conversion), `test_constants.py`
   (enum values, metadata completeness), `test_cache.py` (cache TTL, key generation),
@@ -609,10 +667,11 @@ are made during testing. 667 tests across 15 test modules (97% overall coverage)
 - **Adapter tests**: `test_nhle_adapter.py` (search, get_by_id, normalisation),
   `test_aim_adapter.py`, `test_conservation_area_adapter.py`,
   `test_heritage_at_risk_adapter.py`, `test_gateway_adapter.py`,
+  `test_scotland_adapter.py` (NRHE search, designation search, get_by_id, normalisation),
   `test_arcgis_client.py` (HTTP retry, rate limiting, error handling),
   `test_gateway_client.py` (ViewState parsing, HTML scraping, rate limiting)
 - **Integration tests**: `test_source_registry.py` (adapter dispatch, capabilities),
-  `test_tools.py` (all 23 tools end-to-end with mocked registry)
+  `test_tools.py` (all 26 tools end-to-end with mocked registry)
 - **Model tests**: `test_responses.py` (extra="forbid" enforcement, to_text() output)
 - **Import tests**: `test_server.py` (package imports, server module structure)
 

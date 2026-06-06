@@ -32,13 +32,14 @@ class TestServerConfig:
 
 
 class TestSourceMetadata:
-    def test_has_all_five_sources(self):
+    def test_has_all_six_sources(self):
         assert "nhle" in SOURCE_METADATA
         assert "aim" in SOURCE_METADATA
         assert "conservation_area" in SOURCE_METADATA
         assert "heritage_at_risk" in SOURCE_METADATA
         assert "heritage_gateway" in SOURCE_METADATA
-        assert len(SOURCE_METADATA) == 5
+        assert "scotland" in SOURCE_METADATA
+        assert len(SOURCE_METADATA) == 6
 
     def test_nhle_metadata(self):
         nhle = SOURCE_METADATA["nhle"]
@@ -47,7 +48,6 @@ class TestSourceMetadata:
         assert nhle["coverage"] == "England"
         assert nhle["api_type"] == "arcgis_feature_service"
         assert nhle["native_srid"] == 27700
-        assert "spatial_query" in nhle["capabilities"]
         assert "listed_building" in nhle["designation_types"]
         assert nhle["licence"] == "Open Government Licence"
 

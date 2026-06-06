@@ -221,10 +221,15 @@ def register_crossref_tools(mcp: object, registry: object) -> None:
         max_results: int = 20,
         output_mode: str = "json",
     ) -> str:
-        """Find heritage assets near a single point.
+        """Find NHLE heritage assets near a single point.
 
-        Searches the NHLE for designated heritage assets within a
-        radius of the given point. Returns assets sorted by distance.
+        Searches the National Heritage List for England (NHLE) for
+        designated heritage assets within a radius of the given point.
+        Returns assets sorted by distance.
+
+        NOTE: This tool searches NHLE only (England). For Scottish sites
+        use her_search_scotland with lat/lon/radius_m. For aerial features
+        use her_search_aerial with lat/lon/radius_m.
 
         Args:
             lat: WGS84 latitude (use with lon)
@@ -236,12 +241,15 @@ def register_crossref_tools(mcp: object, registry: object) -> None:
             output_mode: Response format — "json" (default) or "text"
 
         Returns:
-            Nearby heritage assets with distance and bearing
+            Nearby NHLE heritage assets with distance and bearing
 
         Tips for LLMs:
             - Use lat/lon OR easting/northing (not both)
             - Results are sorted by distance from the centre point
             - Each result includes distance_m and bearing_deg
+            - For comprehensive nearby search, ALSO call her_search_aerial
+              and her_search_scotland (if near/in Scotland) with the same
+              lat/lon/radius_m parameters
         """
         try:
             # Coerce numeric params (MCP may pass strings)

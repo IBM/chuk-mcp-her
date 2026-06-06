@@ -5,15 +5,16 @@ Version 0.3.0
 ## Overview
 
 chuk-mcp-her is an MCP (Model Context Protocol) server that provides structured
-access to Historic Environment Records across England. It queries live ArcGIS
-REST APIs from Historic England for designated heritage assets -- listed buildings,
-scheduled monuments, conservation areas, heritage at risk entries, registered parks
-and gardens, battlefields, protected wrecks, and World Heritage Sites -- plus local
-HER data via Heritage Gateway web scraping. Provides tools for cross-referencing,
-nearby search, and export.
+access to Historic Environment Records across England and Scotland. It queries live
+ArcGIS REST APIs from Historic England and Historic Environment Scotland for
+designated heritage assets -- listed buildings, scheduled monuments, conservation
+areas, heritage at risk entries, registered parks and gardens, battlefields,
+protected wrecks, and World Heritage Sites -- plus 320,000+ Scottish NRHE records
+and local HER data via Heritage Gateway web scraping. Provides tools for
+cross-referencing, nearby search, and export.
 
-- **23 tools** across 8 categories (3 discovery, 5 NHLE, 3 aerial, 3 conservation area, 3 heritage at risk, 1 gateway, 3 cross-referencing, 2 export)
-- **5 data sources**: NHLE, AIM, Conservation Areas, Heritage at Risk (all via ArcGIS), Heritage Gateway (web scraper)
+- **28 tools** across 10 categories (3 discovery, 5 NHLE, 3 aerial, 3 conservation area, 3 heritage at risk, 1 gateway, 3 scotland, 3 cross-referencing, 2 export, 2 map)
+- **6 data sources**: NHLE, AIM, Conservation Areas, Heritage at Risk (all via ArcGIS FeatureServer), Heritage Gateway (web scraper), Scotland (ArcGIS MapServer)
 - **Spatial-first queries** via ArcGIS Feature Service with BNG/WGS84 support
 - **Async-first** -- tool entry points are async; httpx for all HTTP requests
 - **Dual output mode** -- all tools return JSON (default) or human-readable text via `output_mode`
@@ -28,6 +29,7 @@ nearby search, and export.
 | `conservation_area` | Conservation Areas | Historic England / LPAs | England | ArcGIS Feature Service | Active |
 | `heritage_at_risk` | Heritage at Risk Register | Historic England | England | ArcGIS Feature Service | Active |
 | `heritage_gateway` | Heritage Gateway (Local HERs) | Historic England / Local HERs | England | Web scraper | Active |
+| `scotland` | Historic Environment Scotland | Historic Environment Scotland | Scotland | ArcGIS Map Service | Active |
 
 ### NHLE Layer Configuration
 
@@ -49,6 +51,35 @@ nearby search, and export.
 | AIM | `https://services-eu1.arcgis.com/ZOdPfBS3aqqDYPUQ/arcgis/rest/services/Aerial_Investigation_Mapping/FeatureServer` |
 | Conservation Areas | `https://services-eu1.arcgis.com/ZOdPfBS3aqqDYPUQ/arcgis/rest/services/Conservation_Areas/FeatureServer` |
 | Heritage at Risk | `https://services-eu1.arcgis.com/ZOdPfBS3aqqDYPUQ/arcgis/rest/services/Heritage_at_Risk_Register_2024/FeatureServer` |
+| Scotland NRHE | `https://inspire.hes.scot/arcgis/rest/services/CANMORE/Canmore_Points/MapServer` |
+| Scotland Designations | `https://inspire.hes.scot/arcgis/rest/services/HES/HES_Designations/MapServer` |
+
+### Scotland Layer Configuration
+
+**Canmore Points (NRHE):**
+
+| Layer ID | Type | Max Records |
+|----------|------|-------------|
+| 0 | Terrestrial | 1,000 |
+| 1 | Maritime | 1,000 |
+
+**HES Designations:**
+
+| Layer ID | Designation Type | Geometry Type |
+|----------|-----------------|---------------|
+| 0 | Listed Building (Points) | Point |
+| 1 | Historic Marine Protected Area | Polygon |
+| 2 | Conservation Area | Polygon |
+| 3 | Battlefield | Polygon |
+| 4 | Garden and Designed Landscape | Polygon |
+| 5 | Scheduled Monument | Point |
+| 6 | World Heritage Site | Polygon |
+| 7 | Listed Building (Polygons) | Polygon |
+
+**Note:** Both Scotland endpoints are ArcGIS MapServer (not FeatureServer).
+MapServer does not support `resultOffset` (no pagination) or `returnCountOnly`
+(no fast count). The adapter uses `result_record_count=max_results` and infers
+`has_more` from `len(features) >= max_results`.
 
 ---
 
@@ -663,7 +694,9 @@ for O(n+m) amortised nearest-neighbour lookup.
 
 #### `her_nearby`
 
-Find heritage assets near a single point.
+Find NHLE heritage assets near a single point (England only).
+
+> **Scope**: searches NHLE only. For Scottish sites call `her_search_scotland` with `lat`/`lon`/`radius_m`. For aerial features call `her_search_aerial` with the same parameters.
 
 **Parameters:**
 
@@ -835,11 +868,145 @@ Export known heritage sites for LiDAR cross-referencing.
 
 ---
 
-### Phase 2+ Tools (Planned)
+### Scotland Tools
 
-#### `her_search_canmore` (Phase 2.0)
+#### `her_search_scotland`
 
-Search Historic Environment Scotland's Canmore database.
+Search Scottish NRHE records (320,000+ sites from Canmore).
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | `str?` | `None` | Site name keyword (partial match, case-insensitive) |
+| `site_type` | `str?` | `None` | Site type keyword (e.g. `"CASTLE"`, `"BROCH"`, `"CAIRN"`) |
+| `broad_class` | `str?` | `None` | Broad classification (e.g. `"DOMESTIC"`, `"RELIGIOUS"`) |
+| `council` | `str?` | `None` | Council area (e.g. `"Highland"`, `"Edinburgh"`) |
+| `bbox` | `str?` | `None` | Bounding box as `"xmin,ymin,xmax,ymax"` in BNG (EPSG:27700) |
+| `lat` | `float?` | `None` | WGS84 latitude for radius search |
+| `lon` | `float?` | `None` | WGS84 longitude for radius search |
+| `radius_m` | `float?` | `None` | Search radius in metres (requires lat/lon) |
+| `max_results` | `int` | `50` | Maximum results (1-1000) |
+
+**Response:** `ScotlandSearchResponse`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `query` | `dict?` | Query parameters applied |
+| `source` | `str` | `scotland` |
+| `count` | `int` | Number of records returned |
+| `total_available` | `int?` | Total matching records |
+| `records` | `ScotlandRecordInfo[]` | NRHE records |
+| `has_more` | `bool` | Whether more results may be available |
+| `message` | `str` | Result message |
+
+**ScotlandRecordInfo fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `record_id` | `str?` | Prefixed ID (e.g. `scotland:12345`) |
+| `canmore_id` | `str?` | Canmore database ID |
+| `site_number` | `str?` | NMRS site number |
+| `name` | `str?` | Site name |
+| `alt_name` | `str?` | Alternative name |
+| `broad_class` | `str?` | Broad classification (DOMESTIC, RELIGIOUS, etc.) |
+| `site_type` | `str?` | Site type (CASTLE, BROCH, CAIRN, etc.) |
+| `form` | `str?` | Form (RUIN, SITE, etc.) |
+| `county` | `str?` | County |
+| `council` | `str?` | Council area |
+| `parish` | `str?` | Parish |
+| `grid_reference` | `str?` | National Grid Reference |
+| `easting` | `float?` | BNG easting |
+| `northing` | `float?` | BNG northing |
+| `lat` | `float?` | WGS84 latitude |
+| `lon` | `float?` | WGS84 longitude |
+| `url` | `str?` | Canmore page URL |
+
+**Note:** MapServer does not support pagination. `has_more` is inferred from
+`len(records) >= max_results`. Maximum 1,000 records per request.
+
+---
+
+#### `her_get_scotland_record`
+
+Get full details of a single Scottish NRHE record by Canmore ID.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `record_id` | `str` | *required* | Canmore ID (e.g. `"scotland:12345"` or `"12345"`) |
+
+**Response:** `MonumentDetailResponse`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `monument` | `dict` | Full NRHE record |
+| `geometry` | `dict?` | GeoJSON geometry (if available) |
+| `message` | `str` | Result message |
+
+---
+
+#### `her_search_scotland_designations`
+
+Search Scottish designated heritage assets.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `designation_type` | `str?` | `None` | Filter: `listed_building`, `scheduled_monument`, `garden_designed_landscape`, `battlefield`, `world_heritage_site`, `conservation_area`, `historic_marine_protected_area` |
+| `name` | `str?` | `None` | Name keyword (partial match, case-insensitive) |
+| `bbox` | `str?` | `None` | Bounding box as `"xmin,ymin,xmax,ymax"` in BNG (EPSG:27700) |
+| `lat` | `float?` | `None` | WGS84 latitude for radius search |
+| `lon` | `float?` | `None` | WGS84 longitude for radius search |
+| `radius_m` | `float?` | `None` | Search radius in metres (requires lat/lon) |
+| `max_results` | `int` | `50` | Maximum results |
+
+**Response:** `ScotlandDesignationSearchResponse`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `query` | `dict?` | Query parameters applied |
+| `source` | `str` | `scotland` |
+| `count` | `int` | Number of designations returned |
+| `total_available` | `int?` | Total matching designations |
+| `designations` | `ScotlandDesignationInfo[]` | Designated asset records |
+| `has_more` | `bool` | Whether more results may be available |
+| `message` | `str` | Result message |
+
+**ScotlandDesignationInfo fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `record_id` | `str?` | Prefixed ID |
+| `designation_reference` | `str?` | HES designation reference |
+| `name` | `str?` | Designation name |
+| `designation_type` | `str?` | Type (listed_building, scheduled_monument, etc.) |
+| `category` | `str?` | Category (e.g. listing grade A/B/C for listed buildings) |
+| `designated_date` | `str?` | Date of designation |
+| `local_authority` | `str?` | Local authority |
+| `easting` | `float?` | BNG easting |
+| `northing` | `float?` | BNG northing |
+| `lat` | `float?` | WGS84 latitude |
+| `lon` | `float?` | WGS84 longitude |
+| `url` | `str?` | HES page URL |
+
+**Scottish designation types:**
+
+| Type | Description | HES Layer(s) |
+|------|-------------|-------------|
+| `listed_building` | Listed buildings (Categories A, B, C) | 0 (points), 7 (polygons) |
+| `scheduled_monument` | Scheduled monuments | 5 |
+| `garden_designed_landscape` | Gardens and designed landscapes | 4 |
+| `battlefield` | Battlefields | 3 |
+| `world_heritage_site` | World Heritage Sites | 6 |
+| `conservation_area` | Conservation areas | 2 |
+| `historic_marine_protected_area` | Historic marine protected areas | 1 |
+
+---
+
+### Phase 2.1+ Tools (Planned)
 
 #### `her_search_coflein` (Phase 2.1)
 
@@ -943,6 +1110,7 @@ Responses are cached as JSON files at `~/.cache/chuk-mcp-her/{source}/{hash}.jso
 | Conservation Areas | 86400s (24 hours) | Designation changes are infrequent |
 | Heritage at Risk | 86400s (24 hours) | Register updated annually |
 | Heritage Gateway | 3600s (1 hour) | Local HER data may update more often |
+| Scotland | 86400s (24 hours) | NRHE and designations change infrequently |
 
 ### Cache Key Generation
 
@@ -960,10 +1128,86 @@ cache_key = f"{source_id}/{sha256(sorted_params)[:16]}"
 | 1.1 | Aerial Investigation Mapping | 2 | 16 |
 | 1.2 | Conservation Areas, Heritage at Risk, Heritage Gateway | 7 | 23 |
 | 1.3 | Cross-Referencing Enhancements | 0 | 23 |
-| 2.0 | Scotland (Canmore) | 1 | 23 |
-| 2.1 | Wales (Coflein) | 1 | 24 |
-| 2.2 | New Heritage Gateway API | 0 | 24 |
-| 3.0 | Netherlands (RCE) | 1 | 25 |
+| 1.4 | Type Safety and Multi-Source Guidance | 0 | 23 |
+| 2.0 | Scotland (Historic Environment Scotland) | 3 | 26 |
+| 2.1 | Wales (Coflein) | TBD | TBD |
+| 2.2 | New Heritage Gateway API | 0 | TBD |
+| 3.0 | Netherlands (RCE) | TBD | TBD |
+
+---
+
+### Map Tools
+
+Map tools return a structured `MapContent` view via the `chuk_view_schemas.chuk_mcp.map_tool` decorator. The result is wrapped in `{"structuredContent": {...}}` automatically and rendered as an interactive map in chuk-mcp-ui-compatible clients.
+
+#### `her_map`
+
+Visualise heritage assets from multiple sources as a multi-layer interactive map.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `bbox` | `str?` | — | WGS84 bbox `"min_lon,min_lat,max_lon,max_lat"` (alternative to lat/lon) |
+| `lat` | `float?` | — | Centre latitude in WGS84 |
+| `lon` | `float?` | — | Centre longitude in WGS84 |
+| `radius_m` | `float` | `1000.0` | Search radius in metres |
+| `sources` | `str?` | all | Comma-separated source IDs: `nhle`, `aim`, `conservation_area`, `heritage_at_risk`, `scotland` |
+| `designation_type` | `str?` | — | Filter NHLE layer to one designation type |
+| `basemap` | `str` | `"osm"` | Background tile layer: `osm`, `satellite`, `terrain`, `dark` |
+| `max_results` | `int` | `200` | Max results per source |
+
+**Response:** `{"structuredContent": MapContent}` with layers:
+
+| Layer ID | Label | Source | Colour |
+|----------|-------|--------|--------|
+| `nhle_listed_building` | Listed Buildings (NHLE) | NHLE | Blue `#2563eb` |
+| `nhle_scheduled_monument` | Scheduled Monuments (NHLE) | NHLE | Brown `#b45309` |
+| `nhle_park_and_garden` | Parks & Gardens (NHLE) | NHLE | Green `#16a34a` |
+| `nhle_battlefield` | Battlefields (NHLE) | NHLE | Red `#dc2626` |
+| `nhle_protected_wreck` | Protected Wrecks (NHLE) | NHLE | Dark Blue `#1d4ed8` |
+| `nhle_world_heritage_site` | World Heritage Sites (NHLE) | NHLE | Gold `#fbbf24` |
+| `aim` | Aerial Mapping (AIM) | AIM | Purple `#a78bfa` |
+| `conservation_area` | Conservation Areas | CA | Teal `#34d399` |
+| `heritage_at_risk` | Heritage at Risk | HAR | Red `#f87171` |
+| `scotland` | Scottish Sites (NRHE) | Scotland | Cyan `#22d3ee` |
+
+Each layer has clustering enabled (radius 40px), a popup template, and a `LayerStyle` with colour, fill colour, opacity, and radius. Only designation types present in the results produce layers.
+
+**Notes:**
+- Sources are queried in parallel via `asyncio.gather()`
+- Heritage Gateway is excluded (no spatial API)
+- Provide `bbox` OR `lat`+`lon` (at least one spatial parameter required)
+
+---
+
+#### `her_crossref_map`
+
+Visualise LiDAR cross-reference results as a colour-coded heritage map.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `candidates` | `str` | `"[]"` | JSON array of `{"easting": x, "northing": y, "name": "..."}` dicts (BNG) |
+| `match_radius_m` | `float` | `50.0` | Distance threshold for "match" classification |
+| `near_radius_m` | `float` | `200.0` | Distance threshold for "near" classification |
+| `designation_types` | `str?` | — | Comma-separated NHLE designation types to match against |
+| `include_aim` | `bool` | `false` | Include AIM aerial mapping in known asset set |
+| `basemap` | `str` | `"osm"` | Background tile layer: `osm`, `satellite`, `terrain`, `dark` |
+
+**Response:** `{"structuredContent": MapContent}` with four classification layers:
+
+| Layer ID | Label | Colour | Meaning |
+|----------|-------|--------|---------|
+| `known_assets` | Known Heritage Assets | Grey `#94a3b8` | NHLE (and optionally AIM) assets in area |
+| `novel` | Novel Candidates (N) | Red `#f87171` | No known asset within `near_radius_m` — potential new discovery |
+| `near` | Near Known Assets (N) | Amber `#fb923c` | Within `near_radius_m` but not a match |
+| `match` | Matches (N) | Green `#4ade80` | Within `match_radius_m` of a known asset |
+
+Known assets layer is rendered first (below candidates). Layers are omitted if empty. Empty `candidates` returns an unlayered map centred on Great Britain.
+
+**Classification logic** matches `her_cross_reference` exactly — pair these two tools to get both the visual and the text-format result table.
 
 ---
 
@@ -981,6 +1225,10 @@ Protected wreck designations in the NHLE can be cross-referenced with wreck
 records in chuk-mcp-maritime-archives. The `protected_wreck` designation type
 in NHLE corresponds to wrecks that have been given legal protection under the
 Protection of Wrecks Act 1973.
+
+### chuk-mcp-ui
+
+`her_map` and `her_crossref_map` use the `@map_tool` decorator from `chuk_view_schemas.chuk_mcp` (part of the `chuk-view-schemas` package). The decorator wraps results in `{"structuredContent": MapContent}` for rendering in chuk-mcp-ui-compatible clients. The `MockMCPServer` in tests implements the `view_tool()` method to support this registration pattern.
 
 ### GIS Tools
 
@@ -1008,6 +1256,8 @@ Protection of Wrecks Act 1973.
 | `cross_reference_demo.py` | `her_cross_reference` (with `include_aim`) | Yes |
 | `enrichment_pipeline_demo.py` | `her_enrich_gateway`, `her_search_heritage_gateway`, `her_cross_reference`, `her_count_features` | Yes |
 | `blackwater_estuary_scenario.py` | Multi-source scenario using NHLE, AIM, Conservation Areas, Heritage at Risk | Yes |
+| `scotland_search_demo.py` | `her_search_scotland`, `her_get_scotland_record` | Yes |
+| `scotland_designations_demo.py` | `her_search_scotland_designations`, `her_search_scotland` | Yes |
 
 ---
 
@@ -1043,4 +1293,7 @@ Protection of Wrecks Act 1973.
 - [ArcGIS REST API Query](https://developers.arcgis.com/rest/services-reference/enterprise/query-feature-service-layer/) -- Query specification
 - [EPSG:27700](https://epsg.io/27700) -- British National Grid
 - [Protection of Wrecks Act 1973](https://www.legislation.gov.uk/ukpga/1973/33) -- Legal basis for protected wreck designations
+- [Historic Environment Scotland](https://www.historicenvironment.scot/) -- Scottish heritage records
+- [Canmore](https://canmore.org.uk/) -- National Record of the Historic Environment (Scotland)
+- [HES Designations MapServer](https://inspire.hes.scot/arcgis/rest/services/HES/HES_Designations/MapServer) -- Scottish designations endpoint
 - [Model Context Protocol](https://modelcontextprotocol.io/) -- MCP specification

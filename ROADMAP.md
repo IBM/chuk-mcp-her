@@ -160,21 +160,42 @@ Type coercion at MCP boundary and improved tool descriptions for multi-source wo
 - 5 data sources
 - Model-agnostic validation (OpenAI GPT-5-mini through mcp-cli)
 
+### Phase 2.0 -- Scotland (Historic Environment Scotland)
+
+Two new data sources via ArcGIS MapServer at inspire.hes.scot. 26 tools across 9 categories.
+
+**Scotland adapter (3 tools):**
+- `ScotlandAdapter` with two `ArcGISClient` instances (NRHE + Designations)
+- `her_search_scotland` -- search 320,000+ NRHE records (Canmore Points)
+- `her_get_scotland_record` -- full details by Canmore ID
+- `her_search_scotland_designations` -- search Scottish designated assets
+  (listed buildings, scheduled monuments, gardens/designed landscapes,
+  battlefields, world heritage sites, conservation areas, historic marine
+  protected areas)
+
+**MapServer handling:**
+- No offset pagination (MapServer limitation vs FeatureServer)
+- No `returnCountOnly` -- uses result count heuristic for `has_more`
+- Max records: 1,000 (Canmore), 10,000 (Designations)
+- XCOORD/YCOORD property fallback for coordinate extraction
+
+**NRHE field mapping** (Canmore Points layer 0):
+- CANMOREID, SITENUMBER, NMRSNAME, ALTNAME, BROADCLASS, SITETYPE, FORM
+- COUNTY, COUNCIL, PARISH, GRIDREF, URL, XCOORD/YCOORD
+
+**Designation field mapping** (HES Designations layers 0-7):
+- DES_REF, DES_TITLE, DES_TYPE, CATEGORY, DESIGNATED, LOCAL_AUTH, LINK
+
+**Deliverables:**
+- 26 registered tools (23 existing + 3 new Scotland tools)
+- 6 data sources (5 existing + Scotland)
+- Coverage expanded from England to England + Scotland
+
 ---
 
 ## Planned
 
 ---
-
-### Phase 2.0 -- Scotland (Canmore)
-
-Integrate Historic Environment Scotland's Canmore database.
-
-- New `CanmoreAdapter` querying Canmore's online API
-- Scottish Grid (EPSG:27700) coordinates (same as BNG for most of Scotland)
-- Monument types, periods, and HER records specific to Scottish heritage
-- `her_search_canmore` tool
-- Coverage expanded from England to England + Scotland
 
 ### Phase 2.1 -- Wales (Coflein)
 
@@ -263,7 +284,7 @@ This server is part of a composable stack of MCP servers:
 
 | Server | Tools | Role |
 |--------|-------|------|
-| chuk-mcp-her | 23 | Historic Environment Records (England) |
+| chuk-mcp-her | 26 | Historic Environment Records (England + Scotland) |
 | chuk-mcp-maritime-archives | 36 | Historical maritime shipping records |
 | chuk-mcp-tides | 17 | Tidal data and harmonic prediction |
 | chuk-mcp-dem | 4 | Bathymetry and elevation data |
@@ -292,12 +313,13 @@ All servers follow the same patterns: Pydantic v2 models, dual output mode, asyn
 | Conservation Areas | ArcGIS Feature Service | `services-eu1.arcgis.com/.../Conservation_Areas/FeatureServer` | Active |
 | Heritage at Risk | ArcGIS Feature Service | `services-eu1.arcgis.com/.../Heritage_at_Risk_Register_2024/FeatureServer` | Active |
 | Heritage Gateway | Web scraper | `www.heritagegateway.org.uk` | Active |
+| Scotland (NRHE) | ArcGIS Map Service | `inspire.hes.scot/.../CANMORE/Canmore_Points/MapServer` | Active |
+| Scotland (Designations) | ArcGIS Map Service | `inspire.hes.scot/.../HES/HES_Designations/MapServer` | Active |
 
 ### Planned
 
 | Source | Jurisdiction | API Type | Target Phase |
 |--------|-------------|----------|-------------|
-| Canmore | Scotland | REST API | 2.0 |
 | Coflein | Wales | REST API | 2.1 |
 | HBSMR Gateway 2.0 | England (local HERs) | REST API | 2.2 |
 | RCE | Netherlands | REST API | 3.0 |
